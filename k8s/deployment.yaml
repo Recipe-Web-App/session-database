@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: session-database
+  namespace: session-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: session-database
+  template:
+    metadata:
+      labels:
+        app: session-database
+    spec:
+      containers:
+        - name: session-database
+          image: session-database:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: session-database-secret
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - mountPath: /data
+              name: redis-storage
+            - mountPath: /logs
+              name: redis-logs
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: redis-storage
+          persistentVolumeClaim:
+            claimName: session-database-pvc
+        - name: redis-logs
+          emptyDir: {}

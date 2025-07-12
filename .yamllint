@@ -1,0 +1,13 @@
+extends: default
+
+rules:
+  line-length:
+    max: 88
+    level: warning
+  comments-indentation:
+    level: warning
+  document-start:
+    level: warning
+  brackets:
+    max-spaces-inside: 1
+    min-spaces-inside: 0

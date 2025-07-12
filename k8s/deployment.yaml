@@ -21,6 +21,41 @@ spec:
           ports:
             - containerPort: 6379
           env:
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_DB
+            - name: SESSION_TTL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: SESSION_TTL_SECONDS
+            - name: MAX_SESSIONS_PER_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: MAX_SESSIONS_PER_USER
+            - name: CLEANUP_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CLEANUP_INTERVAL_SECONDS
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: LOG_LEVEL
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

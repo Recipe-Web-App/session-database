@@ -18,17 +18,20 @@ This repository contains a complete Redis database setup for managing user sessi
 - **User Session Tracking**: Multiple sessions per user with cleanup
 - **Automatic Cleanup**: Expired session cleanup using Redis sorted sets
 - **Statistics**: Session monitoring and statistics
-- **Kubernetes Ready**: Full K8s deployment configuration
-- **Development Tools**: Scripts for connection, backup, and monitoring
-- **Production Ready**: 32 files with comprehensive testing and validation
+- **Kubernetes Ready**: Full K8s deployment configuration with Minikube support
+- **Development Tools**: Comprehensive scripts for deployment, management, and monitoring
+- **Environment Configuration**: Dynamic configuration using environment variables and templates
+- **Production Ready**: Complete deployment workflow with health checks and monitoring
 
 ## Quick Start
 
 ### Prerequisites
 
 - Docker and Docker Compose
-- Kubernetes cluster (for production deployment)
+- Minikube (for local Kubernetes deployment)
+- kubectl
 - Python 3.8+ (for development tools)
+- jq (for JSON processing)
 
 ### Local Development
 
@@ -36,7 +39,7 @@ This repository contains a complete Redis database setup for managing user sessi
    ```bash
    git clone <repository-url>
    cd session-database
-   cp .env.example .env
+   cp env.example .env
    # Edit .env with your configuration
    ```
 
@@ -50,42 +53,87 @@ This repository contains a complete Redis database setup for managing user sessi
    ./scripts/dbManagement/redis-connect.sh
    ```
 
+### Kubernetes Development
+
+1. **Setup environment**:
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+2. **Deploy to Minikube**:
+   ```bash
+   ./scripts/containerManagement/deploy-container.sh
+   ```
+
+3. **Check status**:
+   ```bash
+   ./scripts/containerManagement/get-container-status.sh
+   ```
+
 ### Kubernetes Deployment
 
-1. **Create namespace**:
+The project includes comprehensive Kubernetes deployment scripts that handle the complete deployment workflow:
+
+1. **Setup environment variables**:
    ```bash
-   kubectl create namespace session-database
+   cp env.example .env
+   # Edit .env with your configuration
    ```
 
-2. **Apply secrets and configmaps**:
+2. **Deploy using the deployment script**:
    ```bash
-   kubectl apply -f k8s/secret-template.yaml
-   kubectl apply -f k8s/configmap.yaml
+   ./scripts/containerManagement/deploy-container.sh
    ```
 
-3. **Deploy the application**:
-   ```bash
-   kubectl apply -f k8s/
-   ```
+This script will:
+- ✅ Validate Minikube and required tools
+- ✅ Start Minikube if not running
+- ✅ Create the namespace
+- ✅ Load environment variables from `.env`
+- ✅ Build the Docker image inside Minikube
+- ✅ Create ConfigMap and Secret from templates
+- ✅ Apply PVC, Deployment, and Service
+- ✅ Wait for pod readiness
+- ✅ Setup Minikube mount for development
+
+#### Container Management Scripts
+
+- **Deploy**: `./scripts/containerManagement/deploy-container.sh` - Complete deployment workflow
+- **Start**: `./scripts/containerManagement/start-container.sh` - Scale deployment to 1 replica
+- **Stop**: `./scripts/containerManagement/stop-container.sh` - Scale deployment to 0 replicas
+- **Status**: `./scripts/containerManagement/get-container-status.sh` - Check deployment status
+- **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` - Full cleanup with prompts
 
 ## Project Structure
 
 ```
 session-database/
-├── redis/                    # Redis configuration and scripts
-│   ├── init/                 # Initialization scripts
-│   ├── data/                 # Redis data directory
-│   └── queries/              # Lua scripts for complex operations
-├── python/                   # Python client and utilities
-│   ├── session_manager.py    # Main session management class
-│   ├── session_client.py     # Redis client wrapper
-│   └── utils/                # Utility modules
-├── scripts/                  # Management scripts
-│   ├── containerManagement/  # Docker/K8s management
-│   ├── dbManagement/         # Redis operations
-│   └── jobHelpers/           # Maintenance jobs
-├── k8s/                      # Kubernetes manifests
-└── tests/                    # Test suite
+├── redis/                          # Redis configuration and scripts
+│   ├── init/                       # Initialization scripts
+│   ├── data/                       # Redis data directory
+│   └── queries/                    # Lua scripts for complex operations
+├── python/                         # Python client and utilities
+│   ├── session_manager.py          # Main session management class
+│   ├── session_client.py           # Redis client wrapper
+│   └── utils/                      # Utility modules
+├── scripts/                        # Management scripts
+│   ├── containerManagement/        # Docker/K8s management
+│   │   ├── deploy-container.sh     # Complete deployment workflow
+│   │   ├── start-container.sh      # Start deployment
+│   │   ├── stop-container.sh       # Stop deployment
+│   │   ├── get-container-status.sh # Check status
+│   │   └── cleanup-container.sh    # Full cleanup
+│   ├── dbManagement/               # Redis operations
+│   └── jobHelpers/                 # Maintenance jobs
+├── k8s/                            # Kubernetes manifests
+│   ├── configmap-template.yaml     # ConfigMap template with env vars
+│   ├── secret-template.yaml        # Secret template with env vars
+│   ├── deployment.yaml             # Redis deployment
+│   ├── service.yaml                # Redis service
+│   ├── pvc.yaml                    # Persistent volume claim
+│   └── jobs/                       # Kubernetes jobs
+└── tests/                          # Test suite
 ```
 
 ## Usage
@@ -128,11 +176,18 @@ cleaned_count = session_manager.cleanup_expired_sessions()
 
 ### Management Scripts
 
+#### Container Management
+- **Deploy**: `./scripts/containerManagement/deploy-container.sh` - Complete deployment workflow
+- **Start**: `./scripts/containerManagement/start-container.sh` - Scale deployment to 1 replica
+- **Stop**: `./scripts/containerManagement/stop-container.sh` - Scale deployment to 0 replicas
+- **Status**: `./scripts/containerManagement/get-container-status.sh` - Check deployment status
+- **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` - Full cleanup with prompts
+
+#### Database Management
 - **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh`
 - **Backup sessions**: `./scripts/dbManagement/backup-sessions.sh`
 - **Monitor sessions**: `./scripts/dbManagement/monitor-sessions.sh`
 - **Health check**: `./scripts/jobHelpers/session-health-check.sh`
-- **Build Docker image**: `./scripts/containerManagement/build-image.sh`
 
 ### Example Usage
 
@@ -166,7 +221,10 @@ REDIS_DB=0
 SESSION_TTL_SECONDS=3600
 MAX_SESSIONS_PER_USER=5
 CLEANUP_INTERVAL_SECONDS=300
+LOG_LEVEL=INFO
 ```
+
+The deployment scripts use environment variable substitution for ConfigMap and Secret templates, making configuration dynamic and secure.
 
 ### Redis Configuration
 

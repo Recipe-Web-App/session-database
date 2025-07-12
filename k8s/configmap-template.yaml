@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: session-database-config
+  namespace: session-database
+  labels:
+    app: session-database
+data:
+  # Redis configuration
+  REDIS_HOST: "${REDIS_HOST}"
+  REDIS_PORT: "${REDIS_PORT}"
+  REDIS_DB: "${REDIS_DB}"
+  # Session configuration
+  SESSION_TTL_SECONDS: "${SESSION_TTL_SECONDS}"
+  MAX_SESSIONS_PER_USER: "${MAX_SESSIONS_PER_USER}"
+  CLEANUP_INTERVAL_SECONDS: "${CLEANUP_INTERVAL_SECONDS}"
+  LOG_LEVEL: "${LOG_LEVEL}"

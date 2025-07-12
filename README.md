@@ -1,27 +1,25 @@
 # Session Database
 
-A Redis-based session management system designed to handle user sessions for the user-manager-service.
+A Redis-based session storage service designed to provide session storage for microservices.
 
 ## Overview
 
-This repository contains a complete Redis database setup for managing user sessions, including:
+This repository contains a complete Redis database setup for session storage, including:
 
-- Session creation, validation, and cleanup
-- User session tracking
-- Automatic expiration handling
+- Redis server with password authentication
 - Kubernetes deployment configuration
 - Development and management scripts
+- Persistent storage with backup capabilities
 
 ## Features
 
-- **Session Management**: Complete session lifecycle with TTL support
-- **User Session Tracking**: Multiple sessions per user with cleanup
-- **Automatic Cleanup**: Expired session cleanup using Redis sorted sets
-- **Statistics**: Session monitoring and statistics
+- **Redis Server**: Production-ready Redis 7.2 with password authentication
+- **Session Storage**: Persistent session data with TTL support
 - **Kubernetes Ready**: Full K8s deployment configuration with Minikube support
 - **Development Tools**: Comprehensive scripts for deployment, management, and monitoring
 - **Environment Configuration**: Dynamic configuration using environment variables and templates
 - **Production Ready**: Complete deployment workflow with health checks and monitoring
+- **Security**: Password authentication and network isolation
 
 ## Quick Start
 
@@ -30,7 +28,6 @@ This repository contains a complete Redis database setup for managing user sessi
 - Docker and Docker Compose
 - Minikube (for local Kubernetes deployment)
 - kubectl
-- Python 3.8+ (for development tools)
 - jq (for JSON processing)
 
 ### Local Development
@@ -113,10 +110,6 @@ session-database/
 │   ├── init/                       # Initialization scripts
 │   ├── data/                       # Redis data directory
 │   └── queries/                    # Lua scripts for complex operations
-├── python/                         # Python client and utilities
-│   ├── session_manager.py          # Main session management class
-│   ├── session_client.py           # Redis client wrapper
-│   └── utils/                      # Utility modules
 ├── scripts/                        # Management scripts
 │   ├── containerManagement/        # Docker/K8s management
 │   │   ├── deploy-container.sh     # Complete deployment workflow
@@ -133,45 +126,31 @@ session-database/
 │   ├── service.yaml                # Redis service
 │   ├── pvc.yaml                    # Persistent volume claim
 │   └── jobs/                       # Kubernetes jobs
-└── tests/                          # Test suite
+└── config/                         # Configuration files
+    └── logging.json                # Logging configuration
 ```
 
 ## Usage
 
-### Python Client
+### Redis Connection
+
+Connect to the Redis server from your applications:
 
 ```python
 import redis
-from python.session_manager import SessionManager
 
 # Connect to Redis
 redis_client = redis.Redis(
-    host='localhost',
+    host='session-database-service.session-database.svc.cluster.local',
     port=6379,
-    password='your_password', # pragma: allowlist secret
+    password='redis_password',  # pragma: allowlist secret
     decode_responses=True
 )
 
-session_manager = SessionManager(redis_client)
-
-# Create a session
-session = session_manager.create_session(
-    user_id="user123",
-    ttl_seconds=3600,
-    metadata={"ip": "192.168.1.1", "user_agent": "Mozilla/5.0..."}
-)
-
-# Get session
-session_data = session_manager.get_session(session.session_id)
-
-# Invalidate session
-session_manager.invalidate_session(session.session_id)
-
-# Get user's active sessions
-user_sessions = session_manager.get_user_sessions("user123")
-
-# Cleanup expired sessions
-cleaned_count = session_manager.cleanup_expired_sessions()
+# Direct Redis operations
+redis_client.setex(f"session:{session_id}", 3600, session_data)
+session_data = redis_client.get(f"session:{session_id}")
+redis_client.delete(f"session:{session_id}")
 ```
 
 ### Management Scripts
@@ -188,21 +167,6 @@ cleaned_count = session_manager.cleanup_expired_sessions()
 - **Backup sessions**: `./scripts/dbManagement/backup-sessions.sh`
 - **Monitor sessions**: `./scripts/dbManagement/monitor-sessions.sh`
 - **Health check**: `./scripts/jobHelpers/session-health-check.sh`
-
-### Example Usage
-
-Run the included example to see the session management system in action:
-
-```bash
-python example_usage.py
-```
-
-This demonstrates:
-- Session creation and retrieval
-- User session tracking
-- Session invalidation
-- Statistics and monitoring
-- Cleanup operations
 
 ## Configuration
 
@@ -244,36 +208,32 @@ The Redis configuration is optimized for session management:
    pre-commit install
    ```
 
-2. **Install Python dependencies**:
+2. **Run tests**:
    ```bash
-   cd python
-   pip install -r requirements.txt
-   ```
-
-3. **Run tests**:
-   ```bash
-   pytest tests/
+   # Test Redis connection
+kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password ping  # pragma: allowlist secret
    ```
 
 ### Code Quality
 
 The project uses several tools to maintain code quality:
 
-- **Black**: Code formatting
-- **isort**: Import sorting
-- **flake8**: Linting
-- **mypy**: Type checking
+- **ShellCheck**: Shell script linting
 - **pre-commit**: Automated checks
 
 ## Monitoring
 
-### Session Statistics
+### Redis Statistics
 
-```python
-stats = session_manager.get_session_stats()
-print(f"Total sessions: {stats['total_sessions']}")
-print(f"Active sessions: {stats['active_sessions']}")
-print(f"Expired sessions: {stats['expired_sessions']}")
+```bash
+# Get Redis info
+kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password info  # pragma: allowlist secret
+
+# Get memory usage
+kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password info memory  # pragma: allowlist secret
+
+# Get session keys
+kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password KEYS "session:*"  # pragma: allowlist secret
 ```
 
 ### Health Checks
@@ -318,34 +278,35 @@ The Redis container includes health checks:
 4. Run tests and linting
 5. Submit a pull request
 
-## Integration with User-Manager-Service
+## Integration with Microservices
 
-This session database is designed to work seamlessly with your user-manager-service:
+This session database is designed to work seamlessly with your microservices:
 
 ### Connection Setup
 
 ```python
-# In your user-manager-service
-from session_database.python.session_manager import SessionManager
+# In your microservices
 import redis
 
 # Connect to the session database
 redis_client = redis.Redis(
     host='session-database-service.session-database.svc.cluster.local',
     port=6379,
-    password='your_redis_password', # pragma: allowlist secret
+    password='redis_password',  # pragma: allowlist secret
     decode_responses=True
 )
 
-session_manager = SessionManager(redis_client)
+# Direct Redis operations for session management
+redis_client.setex(f"session:{session_id}", 3600, session_data)
+session_data = redis_client.get(f"session:{session_id}")
 ```
 
 ### Key Integration Points
 
-- **Session Creation**: Create sessions when users log in
-- **Session Validation**: Validate sessions on each request
-- **Session Cleanup**: Automatically handle expired sessions
-- **User Session Management**: Track multiple sessions per user
+- **Session Storage**: Store session data with TTL
+- **Session Retrieval**: Get session data by ID
+- **Session Cleanup**: Handle expired sessions
+- **User Session Tracking**: Track multiple sessions per user
 
 ## License
 

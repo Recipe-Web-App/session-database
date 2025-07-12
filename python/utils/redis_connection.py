@@ -5,16 +5,13 @@ This module provides utilities for managing Redis connections
 with proper error handling and connection pooling.
 """
 
-import os
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
-
 import redis
 
-# Load environment variables
-load_dotenv()
+from ..config import settings
+from ..logging import get_logger
 
 
 class RedisConnection:
@@ -50,10 +47,10 @@ class RedisConnection:
             password = parsed.password or password
             db = int(parsed.path.lstrip("/")) if parsed.path else db
 
-        self.host = host or os.getenv("REDIS_HOST", "localhost")
-        self.port = port or int(os.getenv("REDIS_PORT", "6379"))
-        self.password = password or os.getenv("REDIS_PASSWORD")
-        self.db = db or int(os.getenv("REDIS_DB", "0"))
+        self.host = host or settings.redis_host
+        self.port = port or settings.redis_port
+        self.password = password or settings.redis_password
+        self.db = db or settings.redis_db
 
         # Create connection pool
         self.pool = redis.ConnectionPool(
@@ -67,6 +64,7 @@ class RedisConnection:
         )
 
         self.client: Optional[redis.Redis] = None
+        self.logger = get_logger(__name__)
 
     def get_client(self) -> redis.Redis:
         """Get Redis client instance."""
@@ -74,14 +72,21 @@ class RedisConnection:
             self.client = redis.Redis(
                 connection_pool=self.pool
             )  # type: ignore[assignment]
+            self.logger.debug(f"Created Redis client for {self.host}:{self.port}")
         return self.client
 
     def test_connection(self) -> bool:
         """Test Redis connection."""
         try:
             client = self.get_client()
-            return bool(client.ping())  # type: ignore[arg-type]
-        except Exception:
+            result = bool(client.ping())  # type: ignore[arg-type]
+            if result:
+                self.logger.debug("Redis connection test successful")
+            else:
+                self.logger.warning("Redis connection test failed")
+            return result
+        except Exception as e:
+            self.logger.error(f"Redis connection test failed: {e}")
             return False
 
     def get_connection_info(self) -> Dict[str, Any]:
@@ -98,3 +103,4 @@ class RedisConnection:
         """Close all connections in the pool."""
         if self.pool:
             self.pool.disconnect()
+            self.logger.debug("Redis connection pool closed")

@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 
 import redis
 
+from .logging import get_logger
+
 
 class SessionData(BaseModel):
     """Model for session data structure."""
@@ -34,6 +36,7 @@ class SessionManager:
         self.session_prefix = "session:"
         self.user_sessions_prefix = "user_sessions:"
         self.session_cleanup_key = "session_cleanup"
+        self.logger = get_logger(__name__)
 
     def create_session(
         self,
@@ -64,6 +67,9 @@ class SessionManager:
             {session_data.session_id: session_data.expires_at.timestamp()},
         )
 
+        self.logger.info(
+            f"Created session {session_data.session_id} for user {user_id}"
+        )
         return session_data
 
     def get_session(self, session_id: str) -> Optional[SessionData]:
@@ -73,6 +79,7 @@ class SessionManager:
         session_json = self.redis.get(session_key)  # type: ignore[union-attr]
 
         if not session_json:
+            self.logger.debug(f"Session {session_id} not found")
             return None
 
         session_data = SessionData.model_validate_json(
@@ -87,6 +94,9 @@ class SessionManager:
             session_data.model_dump_json(),
         )
 
+        self.logger.debug(
+            f"Retrieved session {session_id} for user {session_data.user_id}"
+        )
         return session_data
 
     def invalidate_session(self, session_id: str) -> bool:
@@ -159,6 +169,9 @@ class SessionManager:
             session_id_str = session_id.decode()
             if self.invalidate_session(session_id_str):
                 cleaned_count += 1
+
+        if cleaned_count > 0:
+            self.logger.info(f"Cleaned up {cleaned_count} expired sessions")
 
         return cleaned_count  # type: ignore[return-value]
 

@@ -52,6 +52,26 @@ fi
 echo "✅ Found pod: $POD_NAME"
 
 print_separator "="
+echo "🔍 Testing Redis connection..."
+print_separator "-"
+
+# Test Redis connection
+if [ -n "$REDIS_PASSWORD" ]; then
+  PING_RESULT=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
+    redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null || echo "FAILED")
+else
+  PING_RESULT=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
+    redis-cli ping 2>/dev/null || echo "FAILED")
+fi
+
+if [ "$PING_RESULT" = "PONG" ]; then
+  echo "✅ Redis connection: OK"
+else
+  echo "❌ Redis connection: FAILED"
+  exit 1
+fi
+
+print_separator "="
 echo "📦 Creating backup directory..."
 print_separator "-"
 
@@ -62,8 +82,9 @@ print_separator "="
 echo "💾 Starting session backup..."
 print_separator "-"
 
-# Create backup script
-BACKUP_SCRIPT=$(cat << 'EOF'
+# Create a temporary file for the Lua script
+TEMP_SCRIPT=$(mktemp)
+cat > "$TEMP_SCRIPT" << 'EOF'
 -- Backup all session data
 local session_prefix = "session:"
 local user_sessions_prefix = "user_sessions:"
@@ -100,19 +121,46 @@ backup_data["statistics"] = stats
 
 return cjson.encode(backup_data)
 EOF
-)
+
+# Copy the script to the pod and execute it
+kubectl cp "$TEMP_SCRIPT" "$NAMESPACE/$POD_NAME:/tmp/backup_script.lua"
 
 if [ -n "$REDIS_PASSWORD" ]; then
   kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
-    redis-cli -a "$REDIS_PASSWORD" --eval <(echo "$BACKUP_SCRIPT") > "$BACKUP_FILE"
+    redis-cli -a "$REDIS_PASSWORD" --eval /tmp/backup_script.lua > "$BACKUP_FILE" 2>/dev/null || true
 else
   kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
-    redis-cli --eval <(echo "$BACKUP_SCRIPT") > "$BACKUP_FILE"
+    redis-cli --eval /tmp/backup_script.lua > "$BACKUP_FILE" 2>/dev/null || true
 fi
+
+# Clean up temporary file
+rm -f "$TEMP_SCRIPT"
 
 if [ -s "$BACKUP_FILE" ]; then
   echo "✅ Backup completed successfully: $BACKUP_FILE"
   echo "📊 Backup size: $(du -h "$BACKUP_FILE" | cut -f1)"
+
+  # Show backup summary
+  echo ""
+  echo "📋 Backup Summary:"
+  python3 -c "
+import json
+import sys
+
+try:
+    with open('$BACKUP_FILE', 'r') as f:
+        data = json.load(f)
+
+    session_count = len([k for k in data.keys() if not k.startswith('user_sessions_') and k not in ['cleanup_data', 'statistics']])
+    user_count = len([k for k in data.keys() if k.startswith('user_sessions_')])
+
+    print(f'  Sessions backed up: {session_count}')
+    print(f'  Users backed up: {user_count}')
+    print(f'  Backup timestamp: $TIMESTAMP')
+
+except Exception as e:
+    print(f'Error reading backup: {e}')
+  "
 else
   echo "❌ Backup failed or is empty"
   exit 1

@@ -1,4 +1,4 @@
-FROM redis:7.2-alpine
+FROM redis:8.0-alpine
 
 # Install additional tools
 RUN apk add --no-cache \

@@ -10,6 +10,9 @@ RUN apk add --no-cache \
 # Copy Redis configuration
 COPY redis/init/config/redis.conf /usr/local/etc/redis/redis.conf.template
 
+# Copy Lua scripts for session management
+COPY redis/init/scripts/*.lua /usr/local/etc/redis/scripts/
+
 # Create directories for data and logs
 RUN mkdir -p /data /logs && chown -R redis:redis /data /logs
 

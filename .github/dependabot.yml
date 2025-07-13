@@ -1,0 +1,39 @@
+---
+version: 2
+updates:
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    reviewers:
+      - "jsamuelsen"
+    assignees:
+      - "jsamuelsen"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    reviewers:
+      - "jsamuelsen"
+    assignees:
+      - "jsamuelsen"
+
+  # Enable version updates for pre-commit hooks
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    reviewers:
+      - "jsamuelsen"
+    assignees:
+      - "jsamuelsen"
+    ignore:
+      # Ignore major version updates for pre-commit hooks to avoid breaking changes
+      - dependency-name: "pre-commit"
+        update-types: ["version-update:semver-major"]

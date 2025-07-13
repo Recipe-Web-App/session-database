@@ -125,7 +125,15 @@ session-database/
 │   ├── deployment.yaml             # Redis deployment
 │   ├── service.yaml                # Redis service
 │   ├── pvc.yaml                    # Persistent volume claim
-│   └── jobs/                       # Kubernetes jobs
+│   ├── jobs/                       # Kubernetes jobs
+│   ├── monitoring/                 # Monitoring stack
+│   │   ├── prometheus.yaml         # Prometheus deployment
+│   │   ├── redis-exporter.yaml     # Redis metrics exporter
+│   │   ├── grafana.yaml            # Grafana deployment
+│   │   ├── grafana-dashboards-config.yaml # Grafana dashboards
+│   │   ├── grafana-datasources-config.yaml # Grafana datasources
+│   │   └── ingress.yaml            # Ingress for monitoring access
+
 └── config/                         # Configuration files
     └── logging.json                # Logging configuration
 ```
@@ -161,6 +169,8 @@ redis_client.delete(f"session:{session_id}")
 - **Stop**: `./scripts/containerManagement/stop-container.sh` - Scale deployment to 0 replicas
 - **Status**: `./scripts/containerManagement/get-container-status.sh` - Check deployment status
 - **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` - Full cleanup with prompts
+- **Monitoring**: `./scripts/containerManagement/deploy-monitoring.sh` - Deploy monitoring stack
+- **Monitoring Cleanup**: `./scripts/containerManagement/cleanup-monitoring.sh` - Cleanup monitoring stack
 
 #### Database Management
 - **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh`
@@ -222,6 +232,59 @@ The project uses several tools to maintain code quality:
 - **pre-commit**: Automated checks
 
 ## Monitoring
+
+### Monitoring Stack
+
+The project includes a comprehensive monitoring stack with Prometheus, Grafana, and security monitoring:
+
+#### Deploy Monitoring Stack
+
+```bash
+# Deploy all monitoring components
+./scripts/containerManagement/deploy-monitoring.sh
+```
+
+This deploys:
+- **Prometheus**: Metrics collection and storage
+- **Grafana**: Visualization and dashboards
+- **Redis Exporter**: Redis metrics collection
+
+#### Access Monitoring Tools
+
+- **Prometheus**: http://prometheus.local
+- **Grafana**: http://grafana.local (admin/admin)
+
+**Setup Access:**
+The deployment script automatically updates `/etc/hosts` for easy access.
+
+**Manual options:**
+1. **Option 1**: Add to `/etc/hosts`:
+   ```bash
+   $(minikube ip) prometheus.local grafana.local
+   ```
+2. **Option 2**: Use Minikube tunnel:
+   ```bash
+   sudo minikube tunnel
+   ```
+
+#### Monitoring Components
+
+**Prometheus Configuration** (`k8s/monitoring/prometheus.yaml`):
+- Scrapes Redis metrics via redis-exporter
+- Stores metrics with 200h retention
+- Configurable scrape intervals
+
+**Grafana Dashboards** (`k8s/monitoring/grafana-dashboards-config.yaml`):
+- Redis monitoring dashboard
+- Memory usage, connected clients
+- Commands per second, keyspace hits
+
+**Redis Exporter** (`k8s/monitoring/redis-exporter.yaml`):
+- Exposes Redis metrics to Prometheus
+- Authenticated connection to Redis
+- Custom metrics for session management
+
+
 
 ### Redis Statistics
 

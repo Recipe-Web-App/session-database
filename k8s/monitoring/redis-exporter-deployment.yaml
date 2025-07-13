@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: session-database
+  labels:
+    app: redis-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+    spec:
+      containers:
+        - name: redis-exporter
+          image: oliver006/redis_exporter:latest
+          ports:
+            - containerPort: 9121
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          env:
+            - name: REDIS_ADDR
+              value: "redis://session-database-service:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: session-database-secret
+                  key: REDIS_PASSWORD
+          args:
+            - --redis.addr=$(REDIS_ADDR)
+            - --redis.password=$(REDIS_PASSWORD)
+            - --web.listen-address=:9121
+            - --namespace=redis
+            - --log-format=json

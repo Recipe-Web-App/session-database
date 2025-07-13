@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "schedule": [
+    "before 4am on monday"
+  ],
+  "timezone": "America/New_York",
+  "packageRules": [
+    {
+      "matchPackageNames": ["redis"],
+      "groupName": "redis updates",
+      "groupSlug": "redis"
+    },
+    {
+      "matchPackageNames": ["prom/prometheus", "grafana/grafana"],
+      "groupName": "monitoring updates",
+      "groupSlug": "monitoring"
+    },
+    {
+      "matchPackageNames": ["oliver006/redis_exporter"],
+      "groupName": "exporter updates",
+      "groupSlug": "exporter"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackagePatterns": ["^pre-commit"],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
+  ],
+  "assignees": ["jsamuelsen"],
+  "reviewers": ["jsamuelsen"],
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 10,
+  "rangeStrategy": "bump",
+  "bumpVersion": "patch",
+  "semanticCommits": "enabled",
+  "semanticCommitType": "fix",
+  "semanticCommitScope": "deps"
+}

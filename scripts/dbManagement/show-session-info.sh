@@ -143,6 +143,9 @@ try:
         print(f'  Total sessions: {data.get(\"total_sessions\", 0)}')
         print(f'  Active sessions: {data.get(\"active_sessions\", 0)}')
         print(f'  Expired sessions: {data.get(\"expired_sessions\", 0)}')
+        print(f'  Total refresh tokens: {data.get(\"total_refresh_tokens\", 0)}')
+        print(f'  Active refresh tokens: {data.get(\"active_refresh_tokens\", 0)}')
+        print(f'  Expired refresh tokens: {data.get(\"expired_refresh_tokens\", 0)}')
         print(f'  Last cleanup: {data.get(\"last_cleanup\", \"Never\")}')
     else:
         print(f'  ❌ {data[\"error\"]}')

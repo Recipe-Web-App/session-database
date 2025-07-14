@@ -4,16 +4,23 @@
 local user_sessions_prefix = "user_sessions:"
 local session_prefix = "session:"
 local user_stats_prefix = "user_stats:"
+local refresh_token_prefix = "refresh_token:"
+local user_refresh_tokens_prefix = "user_refresh_tokens:"
 
 -- Function to initialize user session tracking
 local function init_user_session_tracking(user_id)
     local user_sessions_key = user_sessions_prefix .. user_id
     local user_stats_key = user_stats_prefix .. user_id
+    local user_refresh_tokens_key = user_refresh_tokens_prefix .. user_id
 
     -- Initialize user sessions set if it doesn't exist
     if redis.call("EXISTS", user_sessions_key) == 0 then
         redis.call("DEL", user_sessions_key)
-        print("Initialized user sessions set for user: " .. user_id)
+    end
+
+    -- Initialize user refresh tokens set if it doesn't exist
+    if redis.call("EXISTS", user_refresh_tokens_key) == 0 then
+        redis.call("DEL", user_refresh_tokens_key)
     end
 
     -- Initialize user statistics if they don't exist
@@ -21,10 +28,11 @@ local function init_user_session_tracking(user_id)
         redis.call("HSET", user_stats_key,
             "total_sessions", 0,
             "active_sessions", 0,
+            "total_refresh_tokens", 0,
+            "active_refresh_tokens", 0,
             "last_login", 0,
             "created_at", redis.call("TIME")[1]
         )
-        print("Initialized user statistics for user: " .. user_id)
     end
 
     return true
@@ -34,6 +42,12 @@ end
 local function get_user_session_count(user_id)
     local user_sessions_key = user_sessions_prefix .. user_id
     return redis.call("SCARD", user_sessions_key)
+end
+
+-- Function to get user refresh token count
+local function get_user_refresh_token_count(user_id)
+    local user_refresh_tokens_key = user_refresh_tokens_prefix .. user_id
+    return redis.call("SCARD", user_refresh_tokens_key)
 end
 
 -- Function to get user active sessions
@@ -55,8 +69,26 @@ local function get_user_active_sessions(user_id)
     return active_sessions
 end
 
+-- Function to get user active refresh tokens
+local function get_user_active_refresh_tokens(user_id)
+    local user_refresh_tokens_key = user_refresh_tokens_prefix .. user_id
+    local refresh_token_ids = redis.call("SMEMBERS", user_refresh_tokens_key)
+    local active_refresh_tokens = {}
+
+    for i, refresh_token_id in ipairs(refresh_token_ids) do
+        local refresh_token_key = refresh_token_prefix .. refresh_token_id
+        if redis.call("EXISTS", refresh_token_key) == 1 then
+            table.insert(active_refresh_tokens, refresh_token_id)
+        else
+            -- Remove expired refresh token from user's set
+            redis.call("SREM", user_refresh_tokens_key, refresh_token_id)
+        end
+    end
+
+    return active_refresh_tokens
+end
+
 -- Export functions for use in other scripts
 redis.call("SET", "user_session_functions_loaded", "true")
 
-print("User session tracking initialization completed")
 return {ok = "User session tracking initialized successfully"}

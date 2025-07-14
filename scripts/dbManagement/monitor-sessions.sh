@@ -81,6 +81,9 @@ local session_prefix = "session:"
 local user_sessions_prefix = "user_sessions:"
 local session_cleanup_key = "session_cleanup"
 local session_stats_key = "session_stats"
+local refresh_token_prefix = "refresh_token:"
+local user_refresh_tokens_prefix = "user_refresh_tokens:"
+local refresh_token_cleanup_key = "refresh_token_cleanup"
 
 local stats = {}
 
@@ -88,9 +91,17 @@ local stats = {}
 local session_keys = redis.call("KEYS", session_prefix .. "*")
 stats.total_sessions = #session_keys
 
+-- Get refresh token counts
+local refresh_token_keys = redis.call("KEYS", refresh_token_prefix .. "*")
+stats.total_refresh_tokens = #refresh_token_keys
+
 -- Get user session counts
 local user_session_keys = redis.call("KEYS", user_sessions_prefix .. "*")
 stats.total_users_with_sessions = #user_session_keys
+
+-- Get user refresh token counts
+local user_refresh_token_keys = redis.call("KEYS", user_refresh_tokens_prefix .. "*")
+stats.total_users_with_refresh_tokens = #user_refresh_token_keys
 
 -- Get cleanup data
 local total_in_cleanup = redis.call("ZCARD", session_cleanup_key)
@@ -98,9 +109,17 @@ local current_time = redis.call("TIME")[1]
 local active_sessions = redis.call("ZCOUNT", session_cleanup_key, current_time, "+inf")
 local expired_sessions = redis.call("ZCOUNT", session_cleanup_key, 0, current_time)
 
+-- Get refresh token cleanup data
+local total_refresh_tokens_in_cleanup = redis.call("ZCARD", refresh_token_cleanup_key)
+local active_refresh_tokens = redis.call("ZCOUNT", refresh_token_cleanup_key, current_time, "+inf")
+local expired_refresh_tokens = redis.call("ZCOUNT", refresh_token_cleanup_key, 0, current_time)
+
 stats.total_in_cleanup = total_in_cleanup
 stats.active_sessions = active_sessions
 stats.expired_sessions = expired_sessions
+stats.total_refresh_tokens_in_cleanup = total_refresh_tokens_in_cleanup
+stats.active_refresh_tokens = active_refresh_tokens
+stats.expired_refresh_tokens = expired_refresh_tokens
 
 -- Get memory usage
 stats.memory_used = redis.call("INFO", "used_memory_human")
@@ -155,10 +174,15 @@ try:
 
     print('📊 Session Overview:')
     print(f'  Total sessions: {data.get(\"total_sessions\", 0)}')
+    print(f'  Total refresh tokens: {data.get(\"total_refresh_tokens\", 0)}')
     print(f'  Users with sessions: {data.get(\"total_users_with_sessions\", 0)}')
+    print(f'  Users with refresh tokens: {data.get(\"total_users_with_refresh_tokens\", 0)}')
     print(f'  Sessions in cleanup: {data.get(\"total_in_cleanup\", 0)}')
+    print(f'  Refresh tokens in cleanup: {data.get(\"total_refresh_tokens_in_cleanup\", 0)}')
     print(f'  Active sessions: {data.get(\"active_sessions\", 0)}')
+    print(f'  Active refresh tokens: {data.get(\"active_refresh_tokens\", 0)}')
     print(f'  Expired sessions: {data.get(\"expired_sessions\", 0)}')
+    print(f'  Expired refresh tokens: {data.get(\"expired_refresh_tokens\", 0)}')
 
     print('')
     print('💾 Memory Usage:')

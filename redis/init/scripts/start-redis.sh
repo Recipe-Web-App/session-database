@@ -28,6 +28,10 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
   # Initialize session cleanup
   redis-cli -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/003_init_session_cleanup.lua
   echo "✅ Session cleanup initialized"
+
+  # Initialize refresh token management
+  redis-cli -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
+  echo "✅ Refresh token management initialized"
 else
   # Initialize session keys and structures
   redis-cli --eval /usr/local/etc/redis/scripts/001_init_session_keys.lua
@@ -40,6 +44,10 @@ else
   # Initialize session cleanup
   redis-cli --eval /usr/local/etc/redis/scripts/003_init_session_cleanup.lua
   echo "✅ Session cleanup initialized"
+
+  # Initialize refresh token management
+  redis-cli --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
+  echo "✅ Refresh token management initialized"
 fi
 
 # Stop the background Redis process

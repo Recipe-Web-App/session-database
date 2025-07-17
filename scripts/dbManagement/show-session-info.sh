@@ -72,6 +72,8 @@ cat > "$TEMP_STATS_SCRIPT" << 'EOF'
 local session_stats_key = "session_stats"
 local session_config_key = "session_config"
 local cleanup_config_key = "cleanup_config"
+local deletion_token_stats_key = "deletion_token_stats"
+local deletion_token_config_key = "deletion_token_config"
 
 local stats = {}
 
@@ -107,11 +109,31 @@ else
     stats.cleanup_error = "Cleanup configuration not initialized"
 end
 
+-- Get deletion token statistics
+if redis.call("EXISTS", deletion_token_stats_key) == 1 then
+    local deletion_stats = redis.call("HGETALL", deletion_token_stats_key)
+    stats.deletion = {}
+    for i = 1, #deletion_stats, 2 do
+        stats.deletion[deletion_stats[i]] = deletion_stats[i + 1]
+    end
+else
+    stats.deletion_error = "Deletion token statistics not initialized"
+end
+-- Get deletion token configuration
+if redis.call("EXISTS", deletion_token_config_key) == 1 then
+    local deletion_config = redis.call("HGETALL", deletion_token_config_key)
+    stats.deletion_config = {}
+    for i = 1, #deletion_config, 2 do
+        stats.deletion_config[deletion_config[i]] = deletion_config[i + 1]
+    end
+else
+    stats.deletion_config_error = "Deletion token configuration not initialized"
+end
+
 -- Get memory information
 stats.memory = {
     used_memory = redis.call("INFO", "used_memory_human"),
-    used_memory_peak = redis.call("INFO", "used_memory_peak_human"),
-    maxmemory = redis.call("CONFIG", "GET", "maxmemory")[2]
+    used_memory_peak = redis.call("INFO", "used_memory_peak_human")
 }
 
 return cjson.encode(stats)
@@ -131,6 +153,11 @@ fi
 # Clean up temporary file
 rm -f "$TEMP_STATS_SCRIPT"
 
+# If $STATS is empty or not valid JSON, set it to '{}'
+if [ -z "$STATS" ] || ! echo "$STATS" | python3 -c 'import sys, json; json.load(sys.stdin)' 2>/dev/null; then
+  STATS='{}'
+fi
+
 echo "$STATS" | python3 -c "
 import json
 import sys
@@ -140,23 +167,23 @@ try:
 
     print('📊 Session Statistics:')
     if 'error' not in data:
-        print(f'  Total sessions: {data.get(\"total_sessions\", 0)}')
-        print(f'  Active sessions: {data.get(\"active_sessions\", 0)}')
-        print(f'  Expired sessions: {data.get(\"expired_sessions\", 0)}')
-        print(f'  Total refresh tokens: {data.get(\"total_refresh_tokens\", 0)}')
-        print(f'  Active refresh tokens: {data.get(\"active_refresh_tokens\", 0)}')
-        print(f'  Expired refresh tokens: {data.get(\"expired_refresh_tokens\", 0)}')
-        print(f'  Last cleanup: {data.get(\"last_cleanup\", \"Never\")}')
+        print('  Total sessions: ' + str(data.get('total_sessions', 0)))
+        print('  Active sessions: ' + str(data.get('active_sessions', 0)))
+        print('  Expired sessions: ' + str(data.get('expired_sessions', 0)))
+        print('  Total refresh tokens: ' + str(data.get('total_refresh_tokens', 0)))
+        print('  Active refresh tokens: ' + str(data.get('active_refresh_tokens', 0)))
+        print('  Expired refresh tokens: ' + str(data.get('expired_refresh_tokens', 0)))
+        print('  Last cleanup: ' + str(data.get('last_cleanup', 'Never')))
     else:
-        print(f'  ❌ {data[\"error\"]}')
+        print('  ❌ ' + str(data.get('error', '')))
 
     print('')
     print('⚙️ Session Configuration:')
     if 'config' in data and 'config_error' not in data:
         for key, value in data['config'].items():
-            print(f'  {key}: {value}')
+            print('  ' + str(key) + ': ' + str(value))
     elif 'config_error' in data:
-        print(f'  ❌ {data[\"config_error\"]}')
+        print('  ❌ ' + str(data.get('config_error', '')))
     else:
         print('  ⚠️ No configuration found')
 
@@ -164,9 +191,9 @@ try:
     print('🧹 Cleanup Configuration:')
     if 'cleanup' in data and 'cleanup_error' not in data:
         for key, value in data['cleanup'].items():
-            print(f'  {key}: {value}')
+            print('  ' + str(key) + ': ' + str(value))
     elif 'cleanup_error' in data:
-        print(f'  ❌ {data[\"cleanup_error\"]}')
+        print('  ❌ ' + str(data.get('cleanup_error', '')))
     else:
         print('  ⚠️ No cleanup configuration found')
 
@@ -174,10 +201,29 @@ try:
     print('💾 Memory Information:')
     if 'memory' in data:
         for key, value in data['memory'].items():
-            print(f'  {key}: {value}')
+            print('  ' + str(key) + ': ' + str(value))
+
+    print('')
+    print('🗑️ Deletion Token Statistics:')
+    if 'deletion' in data and 'deletion_error' not in data:
+        for key, value in data['deletion'].items():
+            print('  ' + str(key) + ': ' + str(value))
+    elif 'deletion_error' in data:
+        print('  ❌ ' + str(data.get('deletion_error', '')))
+    else:
+        print('  ⚠️ No deletion token stats found')
+    print('')
+    print('⚙️ Deletion Token Configuration:')
+    if 'deletion_config' in data and 'deletion_config_error' not in data:
+        for key, value in data['deletion_config'].items():
+            print('  ' + str(key) + ': ' + str(value))
+    elif 'deletion_config_error' in data:
+        print('  ❌ ' + str(data.get('deletion_config_error', '')))
+    else:
+        print('  ⚠️ No deletion token config found')
 
 except Exception as e:
-    print(f'Error parsing statistics: {e}')
+    print('Error parsing statistics: ' + str(e))
 "
 
 print_separator "="
@@ -278,7 +324,7 @@ for i, session_id in ipairs(session_ids) do
             data = session_data,
             expire_time = expire_time,
             ttl = ttl,
-            ttl_human = string.format(\"%.0f seconds\", ttl)
+            ttl_human = string.format('%.0f seconds', ttl)
         }
     else
         -- Remove expired session from cleanup set
@@ -302,6 +348,11 @@ fi
 
 # Clean up temporary file
 rm -f "$TEMP_SESSIONS_SCRIPT"
+
+# If $SESSIONS is empty or not valid JSON, set it to '{}'
+if [ -z "$SESSIONS" ] || ! echo "$SESSIONS" | python3 -c 'import sys, json; json.load(sys.stdin)' 2>/dev/null; then
+  SESSIONS='{}'
+fi
 
 echo "$SESSIONS" | python3 -c "
 import json

@@ -32,6 +32,10 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
   # Initialize refresh token management
   redis-cli -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
   echo "✅ Refresh token management initialized"
+
+  # Initialize deletion token management
+  redis-cli -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
+  echo "✅ Deletion token management initialized"
 else
   # Initialize session keys and structures
   redis-cli --eval /usr/local/etc/redis/scripts/001_init_session_keys.lua
@@ -48,6 +52,10 @@ else
   # Initialize refresh token management
   redis-cli --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
   echo "✅ Refresh token management initialized"
+
+  # Initialize deletion token management
+  redis-cli --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
+  echo "✅ Deletion token management initialized"
 fi
 
 # Stop the background Redis process

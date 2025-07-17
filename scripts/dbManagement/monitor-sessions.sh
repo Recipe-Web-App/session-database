@@ -84,6 +84,11 @@ local session_stats_key = "session_stats"
 local refresh_token_prefix = "refresh_token:"
 local user_refresh_tokens_prefix = "user_refresh_tokens:"
 local refresh_token_cleanup_key = "refresh_token_cleanup"
+-- Deletion token keys
+local deletion_token_prefix = "deletion_token:"
+local user_deletion_tokens_prefix = "user_deletion_tokens:"
+local deletion_token_cleanup_key = "deletion_token_cleanup"
+local deletion_token_stats_key = "deletion_token_stats"
 
 local stats = {}
 
@@ -144,6 +149,18 @@ for i = 1, math.min(10, #top_users) do
     table.insert(stats.top_users, top_users[i])
 end
 
+-- Deletion token stats
+if redis.call("EXISTS", deletion_token_stats_key) == 1 then
+  local deletion_stats = redis.call("HGETALL", deletion_token_stats_key)
+  for i = 1, #deletion_stats, 2 do
+    stats["deletion_" .. deletion_stats[i]] = deletion_stats[i + 1]
+  end
+else
+  stats.deletion_stats_error = "Not initialized"
+end
+local user_deletion_token_keys = redis.call("KEYS", user_deletion_tokens_prefix .. "*")
+stats.total_users_with_deletion_tokens = #user_deletion_token_keys
+
 return cjson.encode(stats)
 EOF
 
@@ -183,6 +200,11 @@ try:
     print(f'  Active refresh tokens: {data.get(\"active_refresh_tokens\", 0)}')
     print(f'  Expired sessions: {data.get(\"expired_sessions\", 0)}')
     print(f'  Expired refresh tokens: {data.get(\"expired_refresh_tokens\", 0)}')
+    print('  Deletion tokens: ' + str(data.get('deletion_total_tokens', 0)))
+    print('  Active deletion tokens: ' + str(data.get('deletion_active_tokens', 0)))
+    print('  Expired deletion tokens: ' + str(data.get('deletion_expired_tokens', 0)))
+    print('  Used deletion tokens: ' + str(data.get('deletion_used_tokens', 0)))
+    print('  Users with deletion tokens: ' + str(data.get('total_users_with_deletion_tokens', 0)))
 
     print('')
     print('💾 Memory Usage:')

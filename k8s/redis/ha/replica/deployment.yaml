@@ -1,0 +1,137 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-replica
+  namespace: session-database
+  labels:
+    app: redis-replica
+    component: ha
+spec:
+  replicas: 2  # Multiple replicas for HA
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: redis-replica
+      component: ha
+  template:
+    metadata:
+      labels:
+        app: redis-replica
+        component: ha
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - redis-replica
+                topologyKey: kubernetes.io/hostname
+      serviceAccountName: redis-replica
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
+      containers:
+        - name: redis-replica
+          image: redis:8.0-alpine@sha256:8c5ebd8e39ac3cfb85b4583dcd5f8b6b4c7b2da0c9f394b8e4aa52b7b2b8b6b7
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 6379
+              name: redis
+          env:
+            - name: REDIS_MASTER_HOST
+              value: "redis-master-service"
+            - name: REDIS_MASTER_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: session-database-secret
+                  key: redis-password
+          args:
+            - redis-server
+            - --port
+            - "6379"
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --masterauth
+            - $(REDIS_PASSWORD)
+            - --replicaof
+            - $(REDIS_MASTER_HOST)
+            - $(REDIS_MASTER_PORT)
+            - --replica-read-only
+            - "yes"
+            - --appendonly
+            - "yes"
+            - --appendfsync
+            - everysec
+          volumeMounts:
+            - mountPath: /data
+              name: redis-replica-storage
+            - mountPath: /tmp
+              name: tmp-volume
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+              ephemeral-storage: "1Gi"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+              ephemeral-storage: "2Gi"
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+      volumes:
+        - name: redis-replica-storage
+          emptyDir: {}  # Replicas don't need persistent storage
+        - name: tmp-volume
+          emptyDir: {}

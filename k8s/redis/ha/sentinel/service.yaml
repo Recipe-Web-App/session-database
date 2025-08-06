@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-service
+  namespace: session-database
+  labels:
+    app: redis-sentinel
+    component: ha
+spec:
+  selector:
+    app: redis-sentinel
+    component: ha
+  ports:
+    - protocol: TCP
+      port: 26379
+      targetPort: 26379
+      name: sentinel
+  type: ClusterIP

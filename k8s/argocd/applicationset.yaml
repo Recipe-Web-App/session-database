@@ -1,0 +1,87 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: session-database-environments
+  namespace: argocd
+  labels:
+    app: session-database
+spec:
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            environment: "true"
+        values:
+          revision: '{{metadata.annotations.branch}}'
+          environment: '{{metadata.labels.environment}}'
+
+    - list:
+        elements:
+          - cluster: in-cluster
+            url: https://kubernetes.default.svc
+            environment: development
+            namespace: session-database-dev
+            revision: develop
+            values: values-development.yaml
+
+          - cluster: in-cluster
+            url: https://kubernetes.default.svc
+            environment: staging
+            namespace: session-database-staging
+            revision: staging
+            values: values-staging.yaml
+
+          - cluster: in-cluster
+            url: https://kubernetes.default.svc
+            environment: production
+            namespace: session-database
+            revision: main
+            values: values-production.yaml
+
+  template:
+    metadata:
+      name: 'session-database-{{environment}}'
+      labels:
+        environment: '{{environment}}'
+        app: session-database
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: .
+    spec:
+      project: session-database-project
+
+      source:
+        repoURL: https://github.com/Recipe-Web-App/session-database.git
+        targetRevision: '{{revision}}'
+        path: helm/session-database
+        helm:
+          valueFiles:
+            - values.yaml
+            - '{{values}}'
+          parameters:
+            - name: global.environment
+              value: '{{environment}}'
+            - name: image.tag
+              value: '{{revision}}'
+
+      destination:
+        server: '{{url}}'
+        namespace: '{{namespace}}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+
+      revisionHistoryLimit: 10

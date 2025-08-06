@@ -42,29 +42,29 @@ print_separator "="
 echo "📊 Deploying Prometheus..."
 print_separator "-"
 
-kubectl apply -f k8s/monitoring/prometheus-configmap.yaml
-kubectl apply -f k8s/monitoring/prometheus-pvc.yaml
-kubectl apply -f k8s/monitoring/prometheus-deployment.yaml
-kubectl apply -f k8s/monitoring/prometheus-service.yaml
+kubectl apply -f k8s/prometheus/prometheus-configmap.yaml
+kubectl apply -f k8s/prometheus/prometheus-pvc.yaml
+kubectl apply -f k8s/prometheus/prometheus-deployment.yaml
+kubectl apply -f k8s/prometheus/prometheus-service.yaml
 echo "✅ Prometheus deployed successfully."
 
 print_separator "="
 echo "🔍 Deploying Redis Exporter..."
 print_separator "-"
 
-kubectl apply -f k8s/monitoring/redis-exporter-deployment.yaml
-kubectl apply -f k8s/monitoring/redis-exporter-service.yaml
+kubectl apply -f k8s/prometheus/redis-exporter/deployment.yaml
+kubectl apply -f k8s/prometheus/redis-exporter/service.yaml
 echo "✅ Redis Exporter deployed successfully."
 
 print_separator "="
 echo "📈 Deploying Grafana..."
 print_separator "-"
 
-kubectl apply -f k8s/monitoring/grafana-dashboards-config.yaml
-kubectl apply -f k8s/monitoring/grafana-datasources-config.yaml
-kubectl apply -f k8s/monitoring/grafana-pvc.yaml
-kubectl apply -f k8s/monitoring/grafana-deployment.yaml
-kubectl apply -f k8s/monitoring/grafana-service.yaml
+kubectl apply -f k8s/grafana/grafana-dashboards-config.yaml
+kubectl apply -f k8s/grafana/grafana-datasources-config.yaml
+kubectl apply -f k8s/grafana/grafana-pvc.yaml
+kubectl apply -f k8s/grafana/grafana-deployment.yaml
+kubectl apply -f k8s/grafana/grafana-service.yaml
 echo "✅ Grafana deployed successfully."
 
 
@@ -81,7 +81,7 @@ print_separator "="
 echo "🌐 Deploying Ingress for monitoring..."
 print_separator "-"
 
-kubectl apply -f k8s/monitoring/ingress.yaml
+kubectl apply -f k8s/shared/ingress.yaml
 echo "✅ Ingress deployed successfully."
 
 print_separator "="

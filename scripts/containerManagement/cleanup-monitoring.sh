@@ -50,36 +50,36 @@ print_separator "="
 echo "📊 Removing Prometheus..."
 print_separator "-"
 
-kubectl delete -f k8s/monitoring/prometheus-configmap.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/prometheus-pvc.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/prometheus-deployment.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/prometheus-service.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/prometheus-configmap.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/prometheus-pvc.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/prometheus-deployment.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/prometheus-service.yaml --ignore-not-found
 echo "✅ Prometheus removed."
 
 print_separator "="
 echo "🔍 Removing Redis Exporter..."
 print_separator "-"
 
-kubectl delete -f k8s/monitoring/redis-exporter-deployment.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/redis-exporter-service.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/redis-exporter/deployment.yaml --ignore-not-found
+kubectl delete -f k8s/prometheus/redis-exporter/service.yaml --ignore-not-found
 echo "✅ Redis Exporter removed."
 
 print_separator "="
 echo "📈 Removing Grafana..."
 print_separator "-"
 
-kubectl delete -f k8s/monitoring/grafana-pvc.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/grafana-deployment.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/grafana-service.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/grafana-dashboards-config.yaml --ignore-not-found
-kubectl delete -f k8s/monitoring/grafana-datasources-config.yaml --ignore-not-found
+kubectl delete -f k8s/grafana/grafana-pvc.yaml --ignore-not-found
+kubectl delete -f k8s/grafana/grafana-deployment.yaml --ignore-not-found
+kubectl delete -f k8s/grafana/grafana-service.yaml --ignore-not-found
+kubectl delete -f k8s/grafana/grafana-dashboards-config.yaml --ignore-not-found
+kubectl delete -f k8s/grafana/grafana-datasources-config.yaml --ignore-not-found
 echo "✅ Grafana removed."
 
 print_separator "="
 echo "🌐 Removing Ingress..."
 print_separator "-"
 
-kubectl delete -f k8s/monitoring/ingress.yaml --ignore-not-found
+kubectl delete -f k8s/shared/ingress.yaml --ignore-not-found
 echo "✅ Ingress removed."
 
 print_separator "="

@@ -115,20 +115,20 @@ print_separator "="
 echo "⚙️ Creating/Updating ConfigMap from env..."
 print_separator "-"
 
-envsubst < "${CONFIG_DIR}/configmap-template.yaml" | kubectl apply -f -
+envsubst < "${CONFIG_DIR}/templates/configmap-template.yaml" | kubectl apply -f -
 
 print_separator "="
 echo "🔐 Creating/updating Secret..."
 print_separator "-"
 
 kubectl delete secret "$SECRET_NAME" -n "$NAMESPACE" --ignore-not-found
-envsubst < "${CONFIG_DIR}/secret-template.yaml" | kubectl apply -f -
+envsubst < "${CONFIG_DIR}/templates/secret-template.yaml" | kubectl apply -f -
 
 print_separator "="
 echo "💾 Applying PersistentVolumeClaim..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/pvc.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/pvc.yaml"
 
 kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="session-database") | .metadata.name' | \
   xargs -I{} kubectl label pv {} app=session-database --overwrite
@@ -137,13 +137,13 @@ print_separator "="
 echo "📦 Deploying Redis container..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/deployment.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/deployment.yaml"
 
 print_separator "="
 echo "🌐 Exposing Redis via ClusterIP Service..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/service.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/service.yaml"
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \

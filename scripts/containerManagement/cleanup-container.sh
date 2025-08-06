@@ -39,10 +39,10 @@ print_separator "="
 echo "🧹 Deleting Kubernetes resources in namespace '$NAMESPACE'..."
 print_separator "-"
 
-kubectl delete -f k8s/configmap-template.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete -f k8s/deployment.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete -f k8s/secret-template.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete -f k8s/service.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete -f k8s/templates/configmap-template.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete -f k8s/redis/standalone/deployment.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete -f k8s/templates/secret-template.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete -f k8s/redis/standalone/service.yaml -n "$NAMESPACE" --ignore-not-found
 
 print_separator "="
 echo "🔌 Checking for active Minikube mount..."
@@ -61,7 +61,7 @@ read -r -p "⚠️ Do you want to delete the PersistentVolumeClaim (PVC)? This w
 print_separator "-"
 
 if [[ "$del_pvc" =~ ^[Yy]$ ]]; then
-  kubectl delete -f k8s/pvc.yaml -n "$NAMESPACE" --ignore-not-found
+  kubectl delete -f k8s/redis/standalone/pvc.yaml -n "$NAMESPACE" --ignore-not-found
   kubectl delete pv -l app=session-database
   echo "🧨 PVC deleted."
 else

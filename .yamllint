@@ -1,4 +1,9 @@
+---
 extends: default
+
+ignore: |
+  helm/*/templates/*.yaml
+  helm/*/templates/*.yml
 
 rules:
   line-length:
@@ -9,5 +14,8 @@ rules:
   document-start:
     level: warning
   brackets:
+    max-spaces-inside: 1
+    min-spaces-inside: 0
+  braces:
     max-spaces-inside: 1
     min-spaces-inside: 0

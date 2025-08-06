@@ -1,66 +1,104 @@
 # Session Database
 
-A Redis-based session storage service designed to provide session storage for microservices.
+An enterprise-grade Redis-based session storage service with high availability, comprehensive security, and production-ready monitoring for microservices architectures.
 
 ## Overview
 
-This repository contains a complete Redis database setup for session storage, including:
+This repository provides a modernized Redis database deployment with enterprise-grade features:
 
-- Redis server with password authentication
-- Kubernetes deployment configuration
-- Development and management scripts
-- Persistent storage with backup capabilities
+- **High Availability**: Redis Sentinel cluster with automatic failover
+- **Comprehensive Security**: Network policies, TLS encryption, ACL authentication
+- **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 15+ alerting rules
+- **Automated Operations**: Session cleanup CronJob and health monitoring
+- **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
+- **Production Ready**: Kubernetes-native deployment with security hardening
+
+## Architecture
+
+### Core Components
+- **Redis Sentinel HA**: 3-node Sentinel cluster monitoring master-replica setup
+- **Redis Master**: Primary instance with persistent storage (10-50GB)
+- **Redis Replicas**: 2-3 read replicas for load distribution and failover
+- **Session Management**: TTL-based sessions with automated cleanup every 5 minutes
+- **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
+
+### Security & Monitoring
+- **Network Policies**: Strict pod-to-pod communication rules
+- **Pod Security Standards**: Enforced "restricted" security profile
+- **TLS Encryption**: Optional Redis connection encryption
+- **ACL Authentication**: Role-based Redis access (6 user types)
+- **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager stack
+- **Automated Alerting**: 15+ critical and warning alerts for proactive response
+
+### Deployment Options
+- **Helm Charts**: Production-ready Kubernetes deployment
+- **GitOps**: ArgoCD integration with multi-environment support
+- **Script-based**: containerManagement scripts for development (standalone mode)
+- **Manual HA**: Full HA deployment with Redis master, replicas, and Sentinel available via raw manifests
 
 ## Features
 
-- **Redis Server**: Production-ready Redis 7.2 with password authentication
-- **Session Storage**: Persistent session data with TTL support
-- **Kubernetes Ready**: Full K8s deployment configuration with Minikube support
-- **Development Tools**: Comprehensive scripts for deployment, management, and monitoring
-- **Environment Configuration**: Dynamic configuration using environment variables and templates
-- **Production Ready**: Complete deployment workflow with health checks and monitoring
-- **Security**: Password authentication and network isolation
+- **High Availability**: Sub-minute automatic failover with zero data loss
+- **Session Storage**: Persistent session data with configurable TTL (1-24 hours)
+- **Token Management**: Refresh tokens (7-14 days) and deletion tokens
+- **Auto-scaling**: HPA based on CPU (70%) and memory (80%) thresholds
+- **Backup & Recovery**: Automated backup with point-in-time recovery
+- **Security Hardening**: Multi-layer security with network isolation
+- **Performance Optimized**: Memory management and connection pooling
 
 ## Quick Start
 
 ### Prerequisites
 
+**For Script-based Deployment:**
 - Docker and Docker Compose
-- Minikube (for local Kubernetes deployment)
-- kubectl
-- jq (for JSON processing)
+- Minikube (for local development)
+- kubectl and jq
 
-### Local Development
+**For Helm Deployment:**
+- Kubernetes cluster (1.25+)
+- Helm 3.x
+- kubectl configured
 
-1. **Clone and setup**:
+**For GitOps Deployment:**
+- ArgoCD installed in cluster
+- Git repository access
+
+### Environment Setup
+
+1. **Clone and configure**:
    ```bash
    git clone <repository-url>
    cd session-database
-   cp env.example .env
-   # Edit .env with your configuration
+   cp .env.example .env
+   # Edit .env with your secure passwords (6 password types required)
    ```
 
-2. **Start Redis with Docker Compose**:
+2. **Environment Variables** (All Required):
    ```bash
-   docker-compose up -d
+   # Core Redis Authentication
+   REDIS_PASSWORD=your-secure-redis-password
+   SENTINEL_PASSWORD=your-secure-sentinel-password
+
+   # ACL User Passwords (role-based access)
+   APP_PASSWORD=your-app-password          # Application access
+   MONITOR_PASSWORD=your-monitor-password  # Prometheus monitoring
+   CLEANUP_PASSWORD=your-cleanup-password  # Cleanup job access
+   BACKUP_PASSWORD=your-backup-password    # Backup operations
    ```
 
-3. **Connect to Redis**:
-   ```bash
-   ./scripts/dbManagement/redis-connect.sh
-   ```
+## Deployment Options
 
-### Kubernetes Development
+### Option 1: Script-based Deployment (Development/Legacy)
 
-1. **Setup environment**:
-   ```bash
-   cp env.example .env
-   # Edit .env with your configuration
-   ```
-
-2. **Deploy to Minikube**:
+1. **Deploy Redis HA cluster**:
    ```bash
    ./scripts/containerManagement/deploy-container.sh
+   ```
+
+2. **Deploy monitoring and security**:
+   ```bash
+   ./scripts/containerManagement/deploy-monitoring.sh
    ```
 
 3. **Check status**:
@@ -68,74 +106,161 @@ This repository contains a complete Redis database setup for session storage, in
    ./scripts/containerManagement/get-container-status.sh
    ```
 
-### Kubernetes Deployment
+### Option 2: Helm Deployment (Recommended)
 
-The project includes comprehensive Kubernetes deployment scripts that handle the complete deployment workflow:
-
-1. **Setup environment variables**:
+1. **Development deployment**:
    ```bash
-   cp env.example .env
-   # Edit .env with your configuration
+   helm install session-database ./helm/session-database \
+     --namespace session-database --create-namespace \
+     --set redis.auth.password=your-redis-password \
+     --set redis.auth.sentinel.password=your-sentinel-password
    ```
 
-2. **Deploy using the deployment script**:
+2. **Production deployment**:
    ```bash
-   ./scripts/containerManagement/deploy-container.sh
+   helm install session-database ./helm/session-database \
+     --namespace session-database --create-namespace \
+     --values ./helm/session-database/values-production.yaml
    ```
 
-This script will:
-- ✅ Validate Minikube and required tools
-- ✅ Start Minikube if not running
-- ✅ Create the namespace
-- ✅ Load environment variables from `.env`
-- ✅ Build the Docker image inside Minikube
-- ✅ Create ConfigMap and Secret from templates
-- ✅ Apply PVC, Deployment, and Service
-- ✅ Wait for pod readiness
-- ✅ Setup Minikube mount for development
+### Option 3: GitOps with ArgoCD (Production)
 
-#### Container Management Scripts
+1. **Deploy ArgoCD Application**:
+   ```bash
+   kubectl apply -f k8s/argocd/application.yaml
+   ```
 
-- **Deploy**: `./scripts/containerManagement/deploy-container.sh` - Complete deployment workflow
-- **Start**: `./scripts/containerManagement/start-container.sh` - Scale deployment to 1 replica
-- **Stop**: `./scripts/containerManagement/stop-container.sh` - Scale deployment to 0 replicas
-- **Status**: `./scripts/containerManagement/get-container-status.sh` - Check deployment status
-- **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` - Full cleanup with prompts
+2. **Multi-environment setup**:
+   ```bash
+   kubectl apply -f k8s/argocd/applicationset.yaml
+   ```
+
+## Container Management Scripts
+
+The containerManagement scripts provide consistent deployment patterns across the distributed system:
+
+### Core Container Scripts (Redis Cluster)
+- **`deploy-container.sh`**: Deploy Redis HA cluster (Master, Replicas, Sentinel)
+- **`start-container.sh`**: Start Redis cluster components
+- **`stop-container.sh`**: Stop Redis cluster components
+- **`cleanup-container.sh`**: Clean up Redis cluster with data preservation options
+- **`get-container-status.sh`**: Check Redis cluster health and status
+
+### Supporting Services Scripts (Monitoring & Security)
+- **`deploy-monitoring.sh`**: Deploy monitoring, alerting, and security
+- **`cleanup-monitoring.sh`**: Clean up monitoring and security components
+
+### Usage Examples
+
+```bash
+# Full deployment workflow
+./scripts/containerManagement/deploy-container.sh
+./scripts/containerManagement/deploy-monitoring.sh
+
+# Check status
+./scripts/containerManagement/get-container-status.sh
+
+# Maintenance operations
+./scripts/containerManagement/stop-container.sh    # Maintenance mode
+./scripts/containerManagement/start-container.sh   # Resume operations
+
+# Clean removal (proper order)
+./scripts/containerManagement/cleanup-monitoring.sh   # Cleanup monitoring first
+./scripts/containerManagement/cleanup-container.sh    # Then cleanup Redis
+```
+
+## Monitoring & Operations
+
+### Access Monitoring Tools
+
+```bash
+# Development (port-forward)
+kubectl port-forward svc/prometheus-service -n session-database 9090:9090
+kubectl port-forward svc/grafana-service -n session-database 3000:3000
+kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
+
+# Production (ingress)
+# https://prometheus.session-db.example.com
+# https://grafana.session-db.example.com
+```
+
+### Key Metrics & Alerts
+- **Redis Cluster Health**: Master/replica/sentinel status
+- **Session Management**: Active sessions, cleanup success rate
+- **Performance**: Memory usage, connection count, hit rate
+- **Security**: Network policy enforcement, authentication failures
+- **15+ Automated Alerts**: Critical and warning notifications
 
 ## Project Structure
 
 ```
 session-database/
-├── redis/                          # Redis configuration and scripts
-│   ├── init/                       # Initialization scripts
-│   ├── data/                       # Redis data directory
-│   └── queries/                    # Lua scripts for complex operations
+├── helm/                           # Helm charts (recommended deployment)
+│   └── session-database/           # Main Helm chart
+│       ├── Chart.yaml              # Chart metadata
+│       ├── values.yaml             # Default configuration
+│       ├── values-production.yaml  # Production overrides
+│       └── templates/              # Kubernetes templates
+├── k8s/                           # Kubernetes manifests (organized by application)
+│   ├── argocd/                     # GitOps configurations
+│   │   ├── application.yaml        # ArgoCD application
+│   │   ├── applicationset.yaml     # Multi-environment setup
+│   │   └── session-database-project-appproject.yaml
+│   ├── redis/                      # Redis session database
+│   │   ├── standalone/             # Simple deployment option
+│   │   │   ├── deployment.yaml     # Single Redis instance
+│   │   │   ├── service.yaml        # Redis service
+│   │   │   └── pvc.yaml           # Persistent storage
+│   │   ├── ha/                     # High availability deployment
+│   │   │   ├── master/             # Redis master components
+│   │   │   ├── replica/            # Redis replica components
+│   │   │   └── sentinel/           # Redis sentinel components
+│   │   ├── shared/                 # Shared Redis resources
+│   │   │   └── session-cleanup-*   # Automated cleanup jobs
+│   │   └── autoscaling/           # Redis auto-scaling
+│   │       └── hpa.yaml           # Horizontal pod autoscaler
+│   ├── prometheus/                 # Prometheus monitoring
+│   │   ├── prometheus-deployment.yaml
+│   │   ├── prometheus-service.yaml
+│   │   ├── prometheus-config.yaml
+│   │   ├── prometheus-alerting-rules.yaml
+│   │   └── redis-exporter/         # Redis metrics collection
+│   │       ├── deployment.yaml
+│   │       └── service.yaml
+│   ├── grafana/                    # Grafana visualization
+│   │   ├── grafana-deployment.yaml
+│   │   ├── grafana-service.yaml
+│   │   ├── grafana-dashboards-config.yaml
+│   │   └── grafana-datasources-config.yaml
+│   ├── alertmanager/               # Alert management
+│   │   ├── alertmanager-deployment.yaml
+│   │   ├── alertmanager-service.yaml
+│   │   └── alertmanager-config.yaml
+│   ├── shared/                     # Cross-application resources
+│   │   ├── podsecurity.yaml        # Pod security standards
+│   │   ├── networkpolicy.yaml      # Network policies
+│   │   ├── ingress.yaml           # Ingress configuration
+│   │   └── tls-certificates.yaml  # TLS certificates
+│   └── templates/                  # Template files
+│       ├── configmap-template.yaml
+│       └── secret-template.yaml
 ├── scripts/                        # Management scripts
-│   ├── containerManagement/        # Docker/K8s management
-│   │   ├── deploy-container.sh     # Complete deployment workflow
-│   │   ├── start-container.sh      # Start deployment
-│   │   ├── stop-container.sh       # Stop deployment
+│   ├── containerManagement/        # Deployment scripts
+│   │   ├── deploy-container.sh     # Deploy Redis components
+│   │   ├── deploy-monitoring.sh      # Deploy monitoring/security
+│   │   ├── start-container.sh      # Start services
+│   │   ├── stop-container.sh       # Stop services
 │   │   ├── get-container-status.sh # Check status
-│   │   └── cleanup-container.sh    # Full cleanup
-│   ├── dbManagement/               # Redis operations
-│   └── jobHelpers/                 # Maintenance jobs
-├── k8s/                            # Kubernetes manifests
-│   ├── configmap-template.yaml     # ConfigMap template with env vars
-│   ├── secret-template.yaml        # Secret template with env vars
-│   ├── deployment.yaml             # Redis deployment
-│   ├── service.yaml                # Redis service
-│   ├── pvc.yaml                    # Persistent volume claim
-│   ├── jobs/                       # Kubernetes jobs
-│   ├── monitoring/                 # Monitoring stack
-│   │   ├── prometheus.yaml         # Prometheus deployment
-│   │   ├── redis-exporter.yaml     # Redis metrics exporter
-│   │   ├── grafana.yaml            # Grafana deployment
-│   │   ├── grafana-dashboards-config.yaml # Grafana dashboards
-│   │   ├── grafana-datasources-config.yaml # Grafana datasources
-│   │   └── ingress.yaml            # Ingress for monitoring access
-
-└── config/                         # Configuration files
-    └── logging.json                # Logging configuration
+│   │   ├── cleanup-container.sh    # Cleanup Redis
+│   │   └── cleanup-monitoring.sh   # Cleanup monitoring
+│   ├── dbManagement/               # Database operations
+│   └── jobHelpers/                 # Health checks and utilities
+├── redis/                          # Redis configuration
+│   ├── init/scripts/               # Lua initialization scripts
+│   └── data/                       # Redis data directory
+└── docs/                          # Documentation
+    ├── DEPLOYMENT.md               # Comprehensive deployment guide
+    └── CONTAINERMAGAGEMENT.md     # Script documentation
 ```
 
 ## Usage

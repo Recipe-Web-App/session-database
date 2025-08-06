@@ -1,0 +1,15 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: alertmanager-pdb
+  namespace: session-database
+  labels:
+    app: alertmanager
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: alertmanager
+      component: monitoring
+  minAvailable: 1

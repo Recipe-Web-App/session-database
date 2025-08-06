@@ -42,3 +42,6 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
+# pre-commit
+.pre-commit-trivy-cache/

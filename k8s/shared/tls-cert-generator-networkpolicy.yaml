@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tls-cert-generator-network-policy
+  namespace: session-database
+  labels:
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: tls-cert-generator
+      component: security
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []  # No ingress traffic needed for TLS cert generation
+  egress:
+    # Allow DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS for certificate generation (if needed)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443

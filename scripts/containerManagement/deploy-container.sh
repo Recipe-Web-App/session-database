@@ -147,11 +147,32 @@ kubectl apply -f "${CONFIG_DIR}/redis/standalone/service.yaml"
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
-  --selector=app=session-database \
+  --selector=app=session-database,component!=initialization \
   --timeout=90s
 
 print_separator "="
-echo "✅ Redis is up and running in namespace '$NAMESPACE'."
+echo "🔧 Running Redis Lua script initialization..."
+print_separator "-"
+
+# Clean up any previous init jobs
+kubectl delete job redis-lua-init -n "$NAMESPACE" --ignore-not-found
+
+# Run the initialization job
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/init-job.yaml"
+
+# Wait for the job to complete
+if kubectl get job redis-lua-init -n "$NAMESPACE" -o jsonpath='{.status.conditions[0].type}' 2>/dev/null | grep -q "Complete"; then
+  echo "✅ Init job already complete"
+else
+  kubectl wait --namespace="$NAMESPACE" \
+    --for=condition=Complete job/redis-lua-init \
+    --timeout=60s
+fi
+
+echo "✅ Lua scripts initialized successfully"
+
+print_separator "="
+echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
 print_separator "-"
 
 if ! pgrep -f "$MOUNT_CMD" > /dev/null; then

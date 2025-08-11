@@ -7,7 +7,7 @@ metadata:
   annotations:
     # Ignore kube-score warnings for local development image
     # Using latest tag with Never pull policy for local minikube development
-    kube-score/ignore: container-image-tag,container-image-pull-policy
+    kube-score/ignore: container-image-tag,container-image-pull-policy,container-security-context-user-group-id
 spec:
   strategy:
     type: RollingUpdate
@@ -36,9 +36,9 @@ spec:
                 topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
-        runAsUser: 65534
-        runAsGroup: 65534
-        fsGroup: 65534
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
         seccompProfile:
           type: RuntimeDefault
       automountServiceAccountToken: false
@@ -104,6 +104,8 @@ spec:
               name: redis-logs
             - mountPath: /tmp
               name: tmp-volume
+            - mountPath: /config
+              name: redis-config
           resources:
             requests:
               memory: "512Mi"
@@ -123,10 +125,9 @@ spec:
           readinessProbe:
             exec:
               command:
-                - redis-cli
-                - -a
-                - $(REDIS_PASSWORD)
-                - ping
+                - /bin/sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping'
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5
@@ -134,10 +135,9 @@ spec:
           startupProbe:
             exec:
               command:
-                - redis-cli
-                - -a
-                - $(REDIS_PASSWORD)
-                - ping
+                - /bin/sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping'
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 5
@@ -149,4 +149,6 @@ spec:
         - name: redis-logs
           emptyDir: {}
         - name: tmp-volume
+          emptyDir: {}
+        - name: redis-config
           emptyDir: {}

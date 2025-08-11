@@ -7,9 +7,10 @@ tmp/
 *.tmp
 *.log
 
-# Redis data
-redis/data/*.rdb
-redis/data/*.aof
+# Redis local development data (if using hostPath)
+redis/data/
+redis/config/
+redis/logs/
 
 # Python
 __pycache__/

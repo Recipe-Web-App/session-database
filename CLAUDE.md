@@ -51,6 +51,19 @@ This system supports both **Standalone** and **High Availability (HA)** deployme
 - **Alertmanager**: 15+ critical and warning alerts for proactive incident response (`k8s/alertmanager/`)
 - **Redis Exporter**: Detailed Redis metrics including memory, connections, and performance (`k8s/prometheus/redis-exporter/`)
 
+### Session Initialization System
+The deployment uses a **two-phase startup process** for robust session management initialization:
+
+1. **Phase 1 - Redis Startup**: Redis server starts with generated configuration and becomes ready for connections
+2. **Phase 2 - Session Management Init**: Separate Kubernetes Job (`k8s/redis/standalone/init-job.yaml`) runs Lua scripts to initialize:
+   - Session key structures and indexes
+   - User session tracking systems
+   - Automated session cleanup mechanisms
+   - Refresh token management
+   - Deletion token tracking
+
+This separation ensures Redis is fully operational before complex initialization, improving reliability and startup time.
+
 ### Automated Operations
 - **Session Cleanup CronJob**: Runs every 2-5 minutes to clean expired sessions/tokens (`k8s/redis/shared/`)
 - **Health Checks**: Comprehensive liveness, readiness, and startup probes
@@ -178,6 +191,17 @@ kubectl create secret generic session-database-secret \
 
 ### Key Configuration Options
 ```yaml
+# Storage Configuration (Recommended: PVC)
+storage:
+  # Primary option - PersistentVolumeClaim (recommended)
+  type: "persistentVolumeClaim"
+  size: "10Gi"
+  storageClass: "standard"
+
+  # Alternative - hostPath (development only)
+  # type: "hostPath"
+  # path: "/mnt/session-database/redis/data"
+
 # High Availability
 ha:
   sentinel:
@@ -257,6 +281,16 @@ kubectl apply -f tests/chaos/
 2. **Network Connectivity**: Verify network policies and DNS resolution
 3. **Resource Pressure**: Monitor HPA scaling and resource utilization
 4. **Security Blocks**: Check Pod Security Standards and service account permissions
+5. **Redis Startup Failures**:
+   - **Permission denied on config/data directories**: Ensure proper fsGroup (999) or use PVC instead of hostPath
+   - **AOF directory creation failed**: Redis 8.0+ requires writable data directory for append-only files
+   - **Read-only filesystem errors**: Check volume mounts and security context settings
+6. **Pod Readiness Issues**:
+   - **Health probe failures**: Verify Redis password environment variable substitution in probes
+   - **Startup timeout**: Check if Redis process is actually starting (review logs for config errors)
+7. **Init Job Problems**:
+   - **Job timeout**: Ensure Redis is ready before Lua initialization starts
+   - **Connection refused**: Verify service name and port configuration in init job
 
 ### Debug Commands
 ```bash

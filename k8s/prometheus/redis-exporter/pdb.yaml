@@ -1,0 +1,15 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-exporter-pdb
+  namespace: session-database
+  labels:
+    app: redis-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+      component: monitoring
+  minAvailable: 1

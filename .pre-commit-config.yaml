@@ -6,6 +6,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^helm/.*
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -38,3 +39,29 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/mxab/pre-commit-trivy
+    rev: v0.15.0
+    hooks:
+      - id: trivyfs-docker
+        args: [--severity=HIGH, .]
+
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.30
+    hooks:
+      - id: helmlint
+
+  - repo: local
+    hooks:
+      - id: kube-score
+        name: kube-score
+        entry: sh -c 'find k8s -name "*.yaml" -type f -not -path "*/templates/*" | xargs kube-score score'
+        language: system
+        files: k8s/.*\.yaml$
+        pass_filenames: false
+        args: []

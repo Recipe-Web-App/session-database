@@ -1,0 +1,154 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: session-database
+  namespace: session-database
+  annotations:
+    # Ignore kube-score warnings for local development image
+    # Using latest tag with Never pull policy for local minikube development
+    kube-score/ignore: container-image-tag,container-image-pull-policy,container-security-context-user-group-id
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: session-database
+  template:
+    metadata:
+      labels:
+        app: session-database
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - session-database
+                topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
+      containers:
+        - name: session-database
+          image: session-database:latest
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_DB
+            - name: SESSION_TTL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: SESSION_TTL_SECONDS
+            - name: MAX_SESSIONS_PER_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: MAX_SESSIONS_PER_USER
+            - name: CLEANUP_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CLEANUP_INTERVAL_SECONDS
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: LOG_LEVEL
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: session-database-secret
+                  key: redis-password
+          volumeMounts:
+            - mountPath: /data
+              name: redis-storage
+            - mountPath: /logs
+              name: redis-logs
+            - mountPath: /tmp
+              name: tmp-volume
+            - mountPath: /config
+              name: redis-config
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+              ephemeral-storage: "1Gi"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+              ephemeral-storage: "2Gi"
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping'
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'redis-cli -a "$REDIS_PASSWORD" ping'
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+      volumes:
+        - name: redis-storage
+          persistentVolumeClaim:
+            claimName: session-database-pvc
+        - name: redis-logs
+          emptyDir: {}
+        - name: tmp-volume
+          emptyDir: {}
+        - name: redis-config
+          emptyDir: {}

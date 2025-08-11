@@ -1,0 +1,242 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: session-database-alerts
+  namespace: session-database
+  labels:
+    app: session-database
+    component: monitoring
+spec:
+  groups:
+    - name: session-database.rules
+      interval: 30s
+      rules:
+        # Redis Instance Health
+        - alert: RedisDown
+          expr: up{job="redis-exporter"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            service: session-database
+          annotations:
+            summary: "Redis instance is down"
+            description: >
+              Redis instance {{ $labels.instance }} has been down for more
+              than 1 minute.
+
+        - alert: RedisConnectionsHigh
+          expr: redis_connected_clients{job="redis-exporter"} > 100
+          for: 2m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "High number of Redis connections"
+            description: >
+              Redis instance {{ $labels.instance }} has {{ $value }}
+              connections, which is above the threshold of 100.
+
+        # Memory Usage Alerts
+        - alert: RedisMemoryUsageHigh
+          expr: >
+            (redis_memory_used_bytes{job="redis-exporter"} /
+            redis_config_maxmemory{job="redis-exporter"}) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Redis memory usage is high"
+            description: >
+              Redis instance {{ $labels.instance }} memory usage is
+              {{ $value }}%, which is above 80%.
+
+        - alert: RedisMemoryUsageCritical
+          expr: >
+            (redis_memory_used_bytes{job="redis-exporter"} /
+            redis_config_maxmemory{job="redis-exporter"}) * 100 > 95
+          for: 2m
+          labels:
+            severity: critical
+            service: session-database
+          annotations:
+            summary: "Redis memory usage is critically high"
+            description: >
+              Redis instance {{ $labels.instance }} memory usage is
+              {{ $value }}%, which is above 95%.
+
+        # Session Management Alerts
+        - alert: SessionCleanupJobFailed
+          expr: increase(kube_job_status_failed{job_name=~"session-cleanup-.*"}[1h]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: session-database
+          annotations:
+            summary: "Session cleanup job failed"
+            description: >
+              Session cleanup job {{ $labels.job_name }} has failed
+              {{ $value }} times in the last hour.
+
+        - alert: SessionCleanupJobNotRunning
+          expr: >
+            time() - kube_job_status_completion_time{job_name=~"session-cleanup-.*"}
+            > 900
+          for: 0m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Session cleanup job hasn't run recently"
+            description: >
+              Session cleanup job hasn't completed successfully in the last
+              15 minutes.
+
+        - alert: ExpiredSessionsAccumulating
+          expr: redis_key_size{key="session_cleanup"} > 1000
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Expired sessions are accumulating"
+            description: >
+              There are {{ $value }} expired sessions waiting for cleanup,
+              indicating cleanup job may not be working properly.
+
+        # Performance Alerts
+        - alert: RedisSlowQueries
+          expr: increase(redis_slowlog_length{job="redis-exporter"}[5m]) > 10
+          for: 0m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Redis slow queries detected"
+            description: >
+              Redis instance {{ $labels.instance }} has {{ $value }} slow
+              queries in the last 5 minutes.
+
+        - alert: RedisKeyspaceHitRateLow
+          expr: >
+            (rate(redis_keyspace_hits_total{job="redis-exporter"}[5m]) /
+            (rate(redis_keyspace_hits_total{job="redis-exporter"}[5m]) +
+            rate(redis_keyspace_misses_total{job="redis-exporter"}[5m])))
+            * 100 < 90
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Redis keyspace hit rate is low"
+            description: >
+              Redis instance {{ $labels.instance }} keyspace hit rate is
+              {{ $value }}%, which is below 90%.
+
+        # Storage and Persistence
+        - alert: RedisRDBLastSaveFailed
+          expr: redis_rdb_last_save_timestamp_seconds{job="redis-exporter"} == -1
+          for: 5m
+          labels:
+            severity: critical
+            service: session-database
+          annotations:
+            summary: "Redis RDB save failed"
+            description: >
+              Redis instance {{ $labels.instance }} last RDB save failed.
+
+        - alert: RedisAOFLastRewriteFailed
+          expr: redis_aof_last_rewrite_duration_sec{job="redis-exporter"} == -1
+          for: 5m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Redis AOF rewrite failed"
+            description: >
+              Redis instance {{ $labels.instance }} last AOF rewrite failed.
+
+        # Pod and Container Health
+        - alert: SessionDatabasePodCrashLooping
+          expr: >
+            rate(kube_pod_container_status_restarts_total
+            {pod=~"session-database-.*"}[15m]) > 0
+          for: 2m
+          labels:
+            severity: critical
+            service: session-database
+          annotations:
+            summary: "Session database pod is crash looping"
+            description: >
+              Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is
+              crash looping.
+
+        - alert: SessionDatabasePodNotReady
+          expr: >
+            kube_pod_status_ready{pod=~"session-database-.*",
+            condition="true"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Session database pod is not ready"
+            description: >
+              Pod {{ $labels.pod }} in namespace {{ $labels.namespace }}
+              has been not ready for more than 5 minutes.
+
+        # Resource Usage
+        - alert: SessionDatabaseHighCPUUsage
+          expr: >
+            rate(container_cpu_usage_seconds_total
+            {pod=~"session-database-.*"}[5m]) * 100 > 80
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "High CPU usage in session database"
+            description: >
+              Pod {{ $labels.pod }} CPU usage is {{ $value }}%, which is
+              above 80%.
+
+        - alert: SessionDatabaseHighMemoryUsage
+          expr: >
+            (container_memory_usage_bytes{pod=~"session-database-.*"} /
+            container_spec_memory_limit_bytes{pod=~"session-database-.*"})
+            * 100 > 80
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "High memory usage in session database"
+            description: >
+              Pod {{ $labels.pod }} memory usage is {{ $value }}%, which is
+              above 80%.
+
+        # Session Statistics
+        - alert: SessionCountAbnormallyHigh
+          expr: redis_key_size{key="session_cleanup"} > 10000
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Abnormally high session count"
+            description: >
+              Total session count is {{ $value }}, which may indicate a
+              session leak or cleanup issues.
+
+        - alert: RefreshTokenCountAbnormallyHigh
+          expr: redis_key_size{key="refresh_token_cleanup"} > 5000
+          for: 10m
+          labels:
+            severity: warning
+            service: session-database
+          annotations:
+            summary: "Abnormally high refresh token count"
+            description: >
+              Total refresh token count is {{ $value }}, which may indicate
+              a token leak or cleanup issues.

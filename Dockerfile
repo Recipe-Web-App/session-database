@@ -18,7 +18,8 @@ RUN mkdir -p /data /logs && chown -R redis:redis /data /logs
 
 # Copy startup script
 COPY redis/init/scripts/start-redis.sh /usr/local/bin/start-redis.sh
-RUN chmod +x /usr/local/bin/start-redis.sh
+COPY redis/init/scripts/init-lua-scripts.sh /usr/local/bin/init-lua-scripts.sh
+RUN chmod +x /usr/local/bin/start-redis.sh /usr/local/bin/init-lua-scripts.sh
 
 # Expose Redis port
 EXPOSE 6379

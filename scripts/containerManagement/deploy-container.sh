@@ -115,20 +115,20 @@ print_separator "="
 echo "⚙️ Creating/Updating ConfigMap from env..."
 print_separator "-"
 
-envsubst < "${CONFIG_DIR}/configmap-template.yaml" | kubectl apply -f -
+envsubst < "${CONFIG_DIR}/templates/configmap-template.yaml" | kubectl apply -f -
 
 print_separator "="
 echo "🔐 Creating/updating Secret..."
 print_separator "-"
 
 kubectl delete secret "$SECRET_NAME" -n "$NAMESPACE" --ignore-not-found
-envsubst < "${CONFIG_DIR}/secret-template.yaml" | kubectl apply -f -
+envsubst < "${CONFIG_DIR}/templates/secret-template.yaml" | kubectl apply -f -
 
 print_separator "="
 echo "💾 Applying PersistentVolumeClaim..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/pvc.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/pvc.yaml"
 
 kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="session-database") | .metadata.name' | \
   xargs -I{} kubectl label pv {} app=session-database --overwrite
@@ -137,21 +137,42 @@ print_separator "="
 echo "📦 Deploying Redis container..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/deployment.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/deployment.yaml"
 
 print_separator "="
 echo "🌐 Exposing Redis via ClusterIP Service..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/service.yaml"
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/service.yaml"
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
-  --selector=app=session-database \
+  --selector=app=session-database,component!=initialization \
   --timeout=90s
 
 print_separator "="
-echo "✅ Redis is up and running in namespace '$NAMESPACE'."
+echo "🔧 Running Redis Lua script initialization..."
+print_separator "-"
+
+# Clean up any previous init jobs
+kubectl delete job redis-lua-init -n "$NAMESPACE" --ignore-not-found
+
+# Run the initialization job
+kubectl apply -f "${CONFIG_DIR}/redis/standalone/init-job.yaml"
+
+# Wait for the job to complete
+if kubectl get job redis-lua-init -n "$NAMESPACE" -o jsonpath='{.status.conditions[0].type}' 2>/dev/null | grep -q "Complete"; then
+  echo "✅ Init job already complete"
+else
+  kubectl wait --namespace="$NAMESPACE" \
+    --for=condition=Complete job/redis-lua-init \
+    --timeout=60s
+fi
+
+echo "✅ Lua scripts initialized successfully"
+
+print_separator "="
+echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
 print_separator "-"
 
 if ! pgrep -f "$MOUNT_CMD" > /dev/null; then

@@ -1,0 +1,62 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: session-database-network-policy
+  namespace: session-database
+  labels:
+    app: session-database
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: session-database
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from application pods (update with your app namespace/labels)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: default  # Replace with your application namespace
+        - podSelector:
+            matchLabels:
+              component: application  # Replace with your application labels
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow ingress from monitoring
+    - from:
+        - podSelector:
+            matchLabels:
+              component: monitoring
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow ingress from session cleanup jobs
+    - from:
+        - podSelector:
+            matchLabels:
+              component: maintenance
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    # Allow DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow communication with replicas and sentinel
+    - to:
+        - podSelector:
+            matchLabels:
+              component: ha
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 26379

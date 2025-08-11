@@ -1,0 +1,13 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: session-database-pdb
+  namespace: session-database
+  labels:
+    app: session-database
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: session-database

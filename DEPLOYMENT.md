@@ -1,15 +1,16 @@
-# Session Database Deployment Guide
+# Session Database & Service Cache Deployment Guide
 
-This guide covers the deployment of the Redis-based session database with high availability, comprehensive monitoring, and security hardening.
+This guide covers the deployment of the Redis-based session database and service cache system with high availability, comprehensive monitoring, and security hardening.
 
 ## Architecture Overview
 
-The modernized session database now includes:
+The modernized session database and cache system now includes:
 
+- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and service cache (DB 1)
 - **High Availability**: Redis Sentinel with master-replica setup
 - **Security**: Network policies, TLS encryption, ACL authentication, Pod Security Standards
 - **Monitoring**: Prometheus, Grafana, Alertmanager with comprehensive alerting rules
-- **Automation**: Automated session cleanup via CronJob
+- **Automation**: Automated session and cache cleanup via CronJobs with intelligent eviction
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Quality Assurance**: Enhanced pre-commit hooks with security scanning
 
@@ -50,12 +51,22 @@ CLEANUP_PASSWORD=your-cleanup-password-here
 # BACKUP_PASSWORD: Used by backup jobs (read-only access for backups)
 BACKUP_PASSWORD=your-backup-password-here
 
+# CACHE_PASSWORD: Used by cache operations for service cache database (DB 1)
+CACHE_PASSWORD=your-cache-password-here
+
 # Session Configuration
 SESSION_TTL_SECONDS=3600
 REFRESH_TOKEN_TTL_SECONDS=604800
 MAX_SESSIONS_PER_USER=5
 MAX_REFRESH_TOKENS_PER_USER=3
 CLEANUP_INTERVAL_SECONDS=300
+
+# Service Cache Configuration
+CACHE_DB=1
+CACHE_DEFAULT_TTL_SECONDS=86400
+CACHE_CLEANUP_INTERVAL_SECONDS=600
+CACHE_CLEANUP_BATCH_SIZE=200
+CACHE_MAX_ENTRIES_PER_SERVICE=10000
 
 # Kubernetes Configuration
 NAMESPACE=session-database

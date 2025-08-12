@@ -72,6 +72,11 @@ spec:
                 configMapKeyRef:
                   name: session-database-config
                   key: REDIS_DB
+            - name: CACHE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_DB
             - name: SESSION_TTL_SECONDS
               valueFrom:
                 configMapKeyRef:
@@ -87,6 +92,26 @@ spec:
                 configMapKeyRef:
                   name: session-database-config
                   key: CLEANUP_INTERVAL_SECONDS
+            - name: CACHE_DEFAULT_TTL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_DEFAULT_TTL_SECONDS
+            - name: CACHE_CLEANUP_INTERVAL_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_CLEANUP_INTERVAL_SECONDS
+            - name: CACHE_CLEANUP_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_CLEANUP_BATCH_SIZE
+            - name: CACHE_MAX_ENTRIES_PER_SERVICE
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_MAX_ENTRIES_PER_SERVICE
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

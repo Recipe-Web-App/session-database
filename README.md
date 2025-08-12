@@ -1,15 +1,16 @@
 # Session Database
 
-An enterprise-grade Redis-based session storage service with high availability, comprehensive security, and production-ready monitoring for microservices architectures.
+An enterprise-grade Redis-based session storage and service cache system with high availability, comprehensive security, and production-ready monitoring for microservices architectures.
 
 ## Overview
 
 This repository provides a modernized Redis database deployment with enterprise-grade features:
 
+- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and service cache (DB 1)
 - **High Availability**: Redis Sentinel cluster with automatic failover
 - **Comprehensive Security**: Network policies, TLS encryption, ACL authentication
-- **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 15+ alerting rules
-- **Automated Operations**: Session cleanup CronJob and health monitoring
+- **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 20+ alerting rules
+- **Automated Operations**: Session and cache cleanup CronJobs with TTL-based expiration
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Production Ready**: Kubernetes-native deployment with security hardening
 
@@ -19,16 +20,17 @@ This repository provides a modernized Redis database deployment with enterprise-
 - **Redis Sentinel HA**: 3-node Sentinel cluster monitoring master-replica setup
 - **Redis Master**: Primary instance with persistent storage (10-50GB)
 - **Redis Replicas**: 2-3 read replicas for load distribution and failover
-- **Session Management**: TTL-based sessions with automated cleanup every 5 minutes
+- **Session Management**: TTL-based sessions with automated cleanup every 5 minutes (DB 0)
+- **Service Cache**: TTL-based caching system for resource data (DB 1)
 - **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
 
 ### Security & Monitoring
 - **Network Policies**: Strict pod-to-pod communication rules
 - **Pod Security Standards**: Enforced "restricted" security profile
 - **TLS Encryption**: Optional Redis connection encryption
-- **ACL Authentication**: Role-based Redis access (6 user types)
-- **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager stack
-- **Automated Alerting**: 15+ critical and warning alerts for proactive response
+- **ACL Authentication**: Role-based Redis access (7 user types including cache)
+- **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager stack with dual Redis exporters
+- **Automated Alerting**: 20+ critical and warning alerts for proactive response
 
 ### Deployment Options
 - **Helm Charts**: Production-ready Kubernetes deployment
@@ -40,11 +42,12 @@ This repository provides a modernized Redis database deployment with enterprise-
 
 - **High Availability**: Sub-minute automatic failover with zero data loss
 - **Session Storage**: Persistent session data with configurable TTL (1-24 hours)
+- **Service Cache**: Isolated cache database for resource data with TTL-based expiration
 - **Token Management**: Refresh tokens (7-14 days) and deletion tokens
 - **Auto-scaling**: HPA based on CPU (70%) and memory (80%) thresholds
-- **Backup & Recovery**: Automated backup with point-in-time recovery
+- **Backup & Recovery**: Multi-database backup with point-in-time recovery
 - **Security Hardening**: Multi-layer security with network isolation
-- **Performance Optimized**: Memory management and connection pooling
+- **Performance Optimized**: Independent memory management and connection pooling per database
 
 ## Quick Start
 
@@ -85,6 +88,7 @@ This repository provides a modernized Redis database deployment with enterprise-
    MONITOR_PASSWORD=your-monitor-password  # Prometheus monitoring
    CLEANUP_PASSWORD=your-cleanup-password  # Cleanup job access
    BACKUP_PASSWORD=your-backup-password    # Backup operations
+   CACHE_PASSWORD=your-cache-password      # Service cache operations
    ```
 
 ## Deployment Options
@@ -272,18 +276,32 @@ Connect to the Redis server from your applications:
 ```python
 import redis
 
-# Connect to Redis
-redis_client = redis.Redis(
+# Connect to Session Database (DB 0)
+session_client = redis.Redis(
     host='session-database-service.session-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
+    db=0,  # Session database
     decode_responses=True
 )
 
-# Direct Redis operations
-redis_client.setex(f"session:{session_id}", 3600, session_data)
-session_data = redis_client.get(f"session:{session_id}")
-redis_client.delete(f"session:{session_id}")
+# Connect to Cache Database (DB 1)
+cache_client = redis.Redis(
+    host='session-database-service.session-database.svc.cluster.local',
+    port=6379,
+    password='redis_password',  # pragma: allowlist secret
+    db=1,  # Cache database
+    decode_responses=True
+)
+
+# Session operations (DB 0)
+session_client.setex(f"session:{session_id}", 3600, session_data)
+session_data = session_client.get(f"session:{session_id}")
+session_client.delete(f"session:{session_id}")
+
+# Cache operations (DB 1) - Example from recipe scraper service
+cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
+recipe_data = cache_client.get(f"cache:resource:popular_recipes")
 ```
 
 ### Management Scripts
@@ -298,8 +316,10 @@ redis_client.delete(f"session:{session_id}")
 - **Monitoring Cleanup**: `./scripts/containerManagement/cleanup-monitoring.sh` - Cleanup monitoring stack
 
 #### Database Management
-- **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh`
-- **Backup sessions**: `./scripts/dbManagement/backup-sessions.sh`
+- **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh [0|1]` (DB 0=sessions, DB 1=cache)
+- **Cache-specific connection**: `./scripts/dbManagement/cache-connect.sh`
+- **Backup databases**: `./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]`
+- **Cache information**: `./scripts/dbManagement/show-cache-info.sh`
 - **Monitor sessions**: `./scripts/dbManagement/monitor-sessions.sh`
 - **Health check**: `./scripts/jobHelpers/session-health-check.sh`
 
@@ -315,11 +335,19 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password_here
 REDIS_DB=0
+CACHE_DB=1
 
 # Session Configuration
 SESSION_TTL_SECONDS=3600
 MAX_SESSIONS_PER_USER=5
 CLEANUP_INTERVAL_SECONDS=300
+
+# Service Cache Configuration
+CACHE_DEFAULT_TTL_SECONDS=86400
+CACHE_CLEANUP_INTERVAL_SECONDS=600
+CACHE_CLEANUP_BATCH_SIZE=200
+CACHE_MAX_ENTRIES_PER_SERVICE=10000
+
 LOG_LEVEL=INFO
 ```
 
@@ -476,25 +504,44 @@ This session database is designed to work seamlessly with your microservices:
 # In your microservices
 import redis
 
-# Connect to the session database
-redis_client = redis.Redis(
+# Connect to session database (DB 0)
+session_client = redis.Redis(
     host='session-database-service.session-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
+    db=0,  # Session database
     decode_responses=True
 )
 
-# Direct Redis operations for session management
-redis_client.setex(f"session:{session_id}", 3600, session_data)
-session_data = redis_client.get(f"session:{session_id}")
+# Connect to cache database (DB 1)
+cache_client = redis.Redis(
+    host='session-database-service.session-database.svc.cluster.local',
+    port=6379,
+    password='redis_password',  # pragma: allowlist secret
+    db=1,  # Cache database
+    decode_responses=True
+)
+
+# Session management operations (DB 0)
+session_client.setex(f"session:{session_id}", 3600, session_data)
+session_data = session_client.get(f"session:{session_id}")
+
+# Service cache operations (DB 1) - Recipe scraper example
+cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
 ```
 
 ### Key Integration Points
 
+#### Session Management (DB 0)
 - **Session Storage**: Store session data with TTL
 - **Session Retrieval**: Get session data by ID
 - **Session Cleanup**: Handle expired sessions
 - **User Session Tracking**: Track multiple sessions per user
+
+#### Service Cache (DB 1)
+- **Resource Cache**: Currently used by recipe scraper service (`cache:resource:popular_recipes`)
+- **Simple TTL-based**: 24-hour cache expiration with automatic cleanup
+- **Extensible**: Additional cache patterns can be added following `cache:resource:*` format
 
 ## License
 

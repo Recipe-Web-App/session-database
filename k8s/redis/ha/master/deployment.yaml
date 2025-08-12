@@ -74,6 +74,16 @@ spec:
                 configMapKeyRef:
                   name: session-database-config
                   key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: REDIS_DB
+            - name: CACHE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: session-database-config
+                  key: CACHE_DB
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

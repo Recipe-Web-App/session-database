@@ -32,6 +32,18 @@ else
 fi
 
 REDIS_PASSWORD=${REDIS_PASSWORD:-}
+DATABASE=${1:-0}  # Default to session database (DB 0), can be overridden
+
+# Validate database number
+if ! [[ "$DATABASE" =~ ^[0-9]+$ ]] || [ "$DATABASE" -lt 0 ] || [ "$DATABASE" -gt 15 ]; then
+  echo "❌ Invalid database number: $DATABASE (must be 0-15)"
+  echo "   Usage: $0 [database_number]"
+  echo "   Examples:"
+  echo "     $0     # Connect to session database (DB 0)"
+  echo "     $0 0   # Connect to session database (DB 0)"
+  echo "     $0 1   # Connect to cache database (DB 1)"
+  exit 1
+fi
 
 print_separator "="
 echo "🚀 Finding a running Redis pod in namespace $NAMESPACE..."
@@ -50,15 +62,22 @@ fi
 echo "✅ Found pod: $POD_NAME"
 
 print_separator "="
-echo "🔐 Starting redis-cli inside pod..."
+echo "🔐 Starting redis-cli inside pod for database $DATABASE..."
+if [ "$DATABASE" = "0" ]; then
+  echo "   Connecting to session database (DB 0)"
+elif [ "$DATABASE" = "1" ]; then
+  echo "   Connecting to cache database (DB 1)"
+else
+  echo "   Connecting to database $DATABASE"
+fi
 print_separator "-"
 
 if [ -n "$REDIS_PASSWORD" ]; then
   kubectl exec -it -n "$NAMESPACE" "$POD_NAME" -- \
-    redis-cli -a "$REDIS_PASSWORD"
+    redis-cli -a "$REDIS_PASSWORD" -n "$DATABASE"
 else
   kubectl exec -it -n "$NAMESPACE" "$POD_NAME" -- \
-    redis-cli
+    redis-cli -n "$DATABASE"
 fi
 
 print_separator "="

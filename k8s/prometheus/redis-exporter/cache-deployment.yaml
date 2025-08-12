@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redis-exporter
+  name: redis-cache-exporter
   namespace: session-database
   labels:
-    app: redis-exporter
+    app: redis-cache-exporter
     component: monitoring
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: redis-exporter
+      app: redis-cache-exporter
       component: monitoring
   template:
     metadata:
       labels:
-        app: redis-exporter
+        app: redis-cache-exporter
         component: monitoring
     spec:
       affinity:
@@ -29,7 +29,7 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - redis-exporter
+                        - redis-cache-exporter
                 topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
@@ -40,7 +40,7 @@ spec:
           type: RuntimeDefault
       automountServiceAccountToken: false
       containers:
-        - name: redis-exporter
+        - name: redis-cache-exporter
           image: oliver006/redis_exporter:v1.58.0@sha256:b7c9b6c2c60ea2bd45f88b1e38a6077cb19ed17d59e0b8c7a48e7ad82a51c5c1
           imagePullPolicy: Always
           securityContext:
@@ -73,11 +73,6 @@ spec:
                 secretKeyRef:
                   name: session-database-secret
                   key: REDIS_PASSWORD
-            - name: REDIS_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: session-database-config
-                  key: REDIS_DB
             - name: CACHE_DB
               valueFrom:
                 configMapKeyRef:
@@ -87,12 +82,12 @@ spec:
             - --redis.addr=$(REDIS_ADDR)
             - --redis.password=$(REDIS_PASSWORD)
             - --web.listen-address=:9121
-            - --namespace=redis
+            - --namespace=redis_cache
             - --log-format=json
             - --include-system-metrics=true
-            - --redis.db=$(REDIS_DB)
-            - --check-keys=session:*,user_sessions:*,refresh_token:*,deletion_token:*
-            - --check-single-keys=session_stats,session_config,session_cleanup
+            - --redis.db=$(CACHE_DB)
+            - --check-keys=cache:*
+            - --check-single-keys=cache_stats,cache_config,cache_cleanup,cache_cleanup_metrics,cache_performance
           volumeMounts:
             - name: tmp
               mountPath: /tmp

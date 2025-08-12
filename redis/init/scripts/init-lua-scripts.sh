@@ -37,6 +37,14 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
   # Initialize deletion token management
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
   echo "✅ Deletion token management initialized"
+
+  # Initialize service cache (DB 1)
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/006_init_service_cache.lua
+  echo "✅ Service cache initialized in DB 1"
+
+  # Initialize cache cleanup system
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/007_init_cache_cleanup.lua
+  echo "✅ Cache cleanup system initialized"
 else
   # Initialize session keys and structures
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/001_init_session_keys.lua
@@ -57,6 +65,14 @@ else
   # Initialize deletion token management
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
   echo "✅ Deletion token management initialized"
+
+  # Initialize service cache (DB 1)
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/006_init_service_cache.lua
+  echo "✅ Service cache initialized in DB 1"
+
+  # Initialize cache cleanup system
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/007_init_cache_cleanup.lua
+  echo "✅ Cache cleanup system initialized"
 fi
 
 echo "🎉 Session management system initialization complete!"

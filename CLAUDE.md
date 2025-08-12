@@ -10,7 +10,9 @@ This is an enterprise-grade Redis-based session storage service for microservice
 
 ### Core Components
 - **High Availability Redis**: Redis Sentinel with master-replica setup for automatic failover
+- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and service cache (DB 1)
 - **Session Management**: TTL-based sessions with automated cleanup via CronJob
+- **Service Cache System**: Dedicated caching layer with LRU and TTL-based cleanup strategies
 - **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
 - **Security Hardening**: Network policies, TLS encryption, ACL authentication, Pod Security Standards
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
@@ -51,24 +53,32 @@ This system supports both **Standalone** and **High Availability (HA)** deployme
 - **Alertmanager**: 15+ critical and warning alerts for proactive incident response (`k8s/alertmanager/`)
 - **Redis Exporter**: Detailed Redis metrics including memory, connections, and performance (`k8s/prometheus/redis-exporter/`)
 
-### Session Initialization System
-The deployment uses a **two-phase startup process** for robust session management initialization:
+### Database Initialization System
+The deployment uses a **two-phase startup process** for robust database initialization:
 
 1. **Phase 1 - Redis Startup**: Redis server starts with generated configuration and becomes ready for connections
-2. **Phase 2 - Session Management Init**: Separate Kubernetes Job (`k8s/redis/standalone/init-job.yaml`) runs Lua scripts to initialize:
-   - Session key structures and indexes
-   - User session tracking systems
-   - Automated session cleanup mechanisms
-   - Refresh token management
-   - Deletion token tracking
+2. **Phase 2 - Database Initialization**: Separate Kubernetes Job (`k8s/redis/standalone/init-job.yaml`) runs Lua scripts to initialize:
+   - **Session Database (DB 0)**:
+     - Session key structures and indexes
+     - User session tracking systems
+     - Automated session cleanup mechanisms
+     - Refresh token management
+     - Deletion token tracking
+   - **Service Cache Database (DB 1)**:
+     - Cache key structures for different service types
+     - Cache cleanup and eviction tracking
+     - Performance metrics and hit ratio monitoring
+     - Service-specific cache configuration
 
 This separation ensures Redis is fully operational before complex initialization, improving reliability and startup time.
 
 ### Automated Operations
-- **Session Cleanup CronJob**: Runs every 2-5 minutes to clean expired sessions/tokens (`k8s/redis/shared/`)
+- **Session Cleanup CronJob**: Runs every 5 minutes to clean expired sessions/tokens (`k8s/redis/shared/`)
+- **Cache Cleanup CronJob**: Runs every 10 minutes to clean expired cache entries with LRU eviction
 - **Health Checks**: Comprehensive liveness, readiness, and startup probes
 - **Autoscaling**: HPA based on CPU (70%) and memory (80%) utilization (`k8s/redis/autoscaling/`)
-- **Backup Automation**: Configurable backup strategies with persistent volume snapshots
+- **Multi-Database Backup**: Configurable backup strategies supporting both session and cache databases
+- **Performance Monitoring**: Cache hit ratio tracking and performance metrics collection
 
 ## Common Commands
 
@@ -126,21 +136,24 @@ kubectl apply -f k8s/argocd/applicationset.yaml
 
 ### Database Operations
 ```bash
-# Connect to Redis (standalone mode)
-kubectl exec -it deployment/session-database -n session-database -- redis-cli -a $REDIS_PASSWORD
+# Connect to Redis databases
+kubectl exec -it deployment/session-database -n session-database -- redis-cli -a $REDIS_PASSWORD -n 0  # Session DB
+kubectl exec -it deployment/session-database -n session-database -- redis-cli -a $REDIS_PASSWORD -n 1  # Cache DB
 
 # Connect to Redis HA master
-kubectl exec -it deployment/redis-master -n session-database -- redis-cli -a $REDIS_PASSWORD
+kubectl exec -it deployment/redis-master -n session-database -- redis-cli -a $REDIS_PASSWORD -n 0      # Session DB
+kubectl exec -it deployment/redis-master -n session-database -- redis-cli -a $REDIS_PASSWORD -n 1      # Cache DB
 
 # Check Sentinel status (HA mode)
 kubectl exec -it deployment/redis-sentinel -n session-database -- redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
 
-# Monitor session cleanup
+# Monitor cleanup operations
 kubectl logs -n session-database -l component=maintenance -f
 
 # Database management scripts
-./scripts/dbManagement/redis-connect.sh           # Interactive Redis connection
-./scripts/dbManagement/backup-sessions.sh         # Backup session data
+./scripts/dbManagement/redis-connect.sh [0|1]     # Interactive Redis connection (DB 0=sessions, DB 1=cache)
+./scripts/dbManagement/cache-connect.sh           # Cache-specific Redis connection with utilities
+./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]  # Backup database(s)
 ./scripts/dbManagement/monitor-sessions.sh        # Monitor session metrics
 ./scripts/jobHelpers/session-health-check.sh      # Comprehensive health check
 ```
@@ -159,18 +172,35 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 
 ## Data Model & Performance
 
-### Redis Data Structures
+### Multi-Database Architecture
+The system uses **Redis logical databases** to provide complete data isolation:
+
+#### Session Database (DB 0)
 - **Sessions**: `session:{session_id}` (hash with TTL) - stores complete session data
 - **User Sessions**: `user_sessions:{user_id}` (set) - tracks active sessions per user
 - **Refresh Tokens**: `refresh_token:{token}` (hash with TTL) - JWT refresh tokens
 - **Deletion Tokens**: `deletion_token:{token}` (hash with TTL) - secure deletion tokens
-- **Cleanup Tracking**: Sorted sets with expiration timestamps for efficient cleanup
+- **Session Cleanup**: `session_cleanup` (sorted set) - expiration timestamps for efficient cleanup
+- **Session Statistics**: `session_stats` (hash) - metrics and counters
+- **Session Configuration**: `session_config` (hash) - TTL and limits configuration
+
+#### Service Cache Database (DB 1)
+- **Resource Cache**: `cache:resource:*` (hash with TTL) - Currently used by recipe scraper service
+  - Example: `cache:resource:popular_recipes` - Cached recipe data with 24h TTL
+- **Cache Statistics**: `cache_stats` (hash) - Basic cache metrics and counters
+- **Cache Configuration**: `cache_config` (hash) - TTL defaults and basic settings
+- **Cache Cleanup Metrics**: `cache_cleanup_metrics` (hash) - Simple cleanup tracking
+
+**Note**: The cache system is designed to be simple and relies on Redis TTL for automatic expiration. Additional cache patterns can be added as needed following the `cache:resource:*` format.
 
 ### Performance Optimizations
-- **Memory Management**: LRU eviction policy with configurable memory limits
-- **Persistence**: AOF + RDB with optimized settings for session workloads
+- **Database Isolation**: Complete separation prevents session and cache operations from interfering
+- **Memory Management**: Independent LRU eviction policies per database with configurable limits
+- **Persistence**: AOF + RDB with optimized settings for both session and cache workloads
 - **Connection Pooling**: TCP keepalive and connection limit configurations
-- **Data Structures**: Optimized ziplist settings for session data patterns
+- **Data Structures**: Optimized ziplist settings for both session and cache data patterns
+- **Cache Strategies**: Simple TTL-based expiration (Redis handles cleanup automatically)
+- **Monitoring Granularity**: Separate Redis exporters for session and cache databases
 
 ## Configuration Management
 
@@ -214,6 +244,20 @@ ha:
   replica:
     replicas: 3
 
+# Service Cache Configuration
+serviceCache:
+  database: 1                    # Cache database number
+  defaultTTL: 86400             # 24 hours default cache TTL
+  cleanup:
+    enabled: true
+    schedule: "*/10 * * * *"    # Every 10 minutes
+    batchSize: 200
+    # Simple TTL-based cleanup (Redis handles expiration automatically)
+  config:
+    maxEntriesPerService: 10000
+    hitRatioThreshold: 0.8
+    memoryThreshold: "512Mi"
+
 # Security
 security:
   networkPolicies:
@@ -229,6 +273,10 @@ monitoring:
     retention: "720h"  # 30 days
   alertmanager:
     enabled: true
+  redisExporter:
+    enabled: true               # Monitors session database
+  redisCacheExporter:
+    enabled: true               # Monitors cache database
 ```
 
 ## Development Workflow

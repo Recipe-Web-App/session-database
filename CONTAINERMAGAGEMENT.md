@@ -1,10 +1,14 @@
 # Container Management Scripts
 
-This directory contains deployment and management scripts that follow consistent patterns across the distributed system architecture. These scripts are designed for eventual migration to a SystemManagement project.
+This directory contains deployment and management scripts that follow
+consistent patterns across the distributed system architecture. These scripts
+are designed for eventual migration to a SystemManagement project.
 
 ## Overview
 
-The containerManagement scripts provide a consistent interface for deploying, managing, and monitoring containerized services. They follow established patterns that ensure compatibility across the entire distributed system.
+The containerManagement scripts provide a consistent interface for deploying,
+managing, and monitoring containerized services. They follow established
+patterns that ensure compatibility across the entire distributed system.
 
 ## Script Categories
 
@@ -18,7 +22,8 @@ These scripts manage the core Redis high-availability cluster:
 - **`cleanup-container.sh`** - Clean up Redis cluster with data preservation
 - **`get-container-status.sh`** - Check Redis cluster health and status
 
-#### Components Managed:
+#### Core Components Managed
+
 - Redis Master (primary instance with persistent storage)
 - Redis Replicas (2-3 read replicas for scaling and failover)
 - Redis Sentinel (3-node cluster for automatic failover)
@@ -36,7 +41,8 @@ These scripts manage auxiliary services that support the core application:
 - **`cleanup-supporting-services.sh`** - Clean up supporting services
 - **`get-supporting-services-status.sh`** - Check supporting services status
 
-#### Components Managed:
+#### Supporting Components Managed
+
 - **Monitoring Stack**: Prometheus, Grafana, Alertmanager, Redis Exporter
 - **Security Policies**: Network policies, Pod Security Standards
 - **Alerting Rules**: 15+ comprehensive Prometheus alerting rules
@@ -45,9 +51,11 @@ These scripts manage auxiliary services that support the core application:
 
 ## Consistent Style Patterns
 
-All scripts in the containerManagement directory follow these established patterns for compatibility with the distributed system:
+All scripts in the containerManagement directory follow these established
+patterns for compatibility with the distributed system:
 
 ### 1. Script Header Pattern
+
 ```bash
 #!/bin/bash
 # scripts/containerManagement/[script-name].sh
@@ -56,16 +64,19 @@ set -euo pipefail
 ```
 
 ### 2. Variable Naming Convention
+
 ```bash
 NAMESPACE="session-database"
 DEPLOYMENT_NAME="redis-master"
 SERVICE_NAME="redis-master-service"
 ```
+
 - All CAPS for constants
 - Descriptive, service-specific naming
 - Clear component identification
 
 ### 3. Terminal UI Pattern
+
 ```bash
 # Fixes bug where first separator line does not fill the terminal width
 COLUMNS=$(tput cols 2>/dev/null || echo 80)
@@ -79,6 +90,7 @@ print_separator() {
 ```
 
 ### 4. Output Format Pattern
+
 ```bash
 print_separator "="
 echo "🔄 [Action description with emoji]..."
@@ -90,6 +102,7 @@ print_separator "="
 ```
 
 ### 5. Error Handling
+
 - `set -euo pipefail` for strict error handling
 - Clear, actionable error messages
 - Graceful failure with cleanup when possible
@@ -98,6 +111,7 @@ print_separator "="
 ## Deployment Workflows
 
 ### Full Deployment Workflow
+
 ```bash
 # 1. Deploy core Redis HA cluster
 ./scripts/containerManagement/deploy-container.sh
@@ -111,6 +125,7 @@ print_separator "="
 ```
 
 ### Maintenance Operations
+
 ```bash
 # Stop services for maintenance
 ./scripts/containerManagement/stop-supporting-services.sh
@@ -125,6 +140,7 @@ print_separator "="
 ```
 
 ### Clean Removal
+
 ```bash
 # Remove supporting services first (proper dependency order)
 ./scripts/containerManagement/cleanup-supporting-services.sh
@@ -136,15 +152,19 @@ print_separator "="
 ## Script Dependencies and Ordering
 
 ### Deployment Order (Critical)
+
 1. **Core First**: `deploy-container.sh` must run before supporting services
-2. **Supporting Second**: `deploy-supporting-services.sh` depends on Redis cluster existing
+2. **Supporting Second**: `deploy-supporting-services.sh` depends on Redis
+   cluster existing
 3. **Verification Last**: Status checks can run independently after deployment
 
 ### Cleanup Order (Critical)
+
 1. **Supporting First**: `cleanup-supporting-services.sh` removes monitoring of Redis
 2. **Core Last**: `cleanup-container.sh` removes the Redis cluster being monitored
 
 ### Start/Stop Order
+
 - **Start**: Core containers first, then supporting services
 - **Stop**: Supporting services first, then core containers
 
@@ -153,6 +173,7 @@ print_separator "="
 All scripts follow consistent environment variable patterns:
 
 ### Required Variables
+
 ```bash
 # Core Redis Authentication
 REDIS_PASSWORD=your-secure-redis-password
@@ -166,6 +187,7 @@ BACKUP_PASSWORD=your-backup-password    # Backup operations
 ```
 
 ### Environment Loading Pattern
+
 ```bash
 if [ -f .env ]; then
   set -o allexport
@@ -180,6 +202,7 @@ fi
 ## Status and Health Checking
 
 ### Core Status Checks
+
 - Redis Master availability and role
 - Redis Replica count and replication lag
 - Sentinel cluster quorum and master discovery
@@ -187,6 +210,7 @@ fi
 - Persistent volume availability and usage
 
 ### Supporting Services Status Checks
+
 - Prometheus scrape target health
 - Grafana dashboard availability
 - Alertmanager rule evaluation and firing
@@ -197,6 +221,7 @@ fi
 ## Error Handling and Recovery
 
 ### Common Error Scenarios
+
 1. **Insufficient Resources**: Clear guidance on resource requirements
 2. **Network Connectivity**: DNS resolution and service discovery issues
 3. **Authentication Failures**: Password validation and secret management
@@ -204,6 +229,7 @@ fi
 5. **Version Compatibility**: Kubernetes version requirements
 
 ### Recovery Procedures
+
 - Automatic retry for transient failures
 - Clear rollback procedures for failed deployments
 - Data preservation during cleanup operations
@@ -214,18 +240,21 @@ fi
 These scripts are designed for easy migration to a centralized SystemManagement project:
 
 ### Standardized Patterns
+
 - Consistent variable naming across all services
 - Identical output formatting and user experience
 - Standardized error handling and logging
 - Compatible deployment workflows
 
 ### Reusable Components
+
 - `print_separator()` function in all scripts
 - Common environment variable loading
 - Standardized kubectl operation patterns
 - Consistent status checking formats
 
 ### Documentation Structure
+
 - Self-documenting script headers
 - Inline comments following established patterns
 - Consistent usage examples
@@ -234,6 +263,7 @@ These scripts are designed for easy migration to a centralized SystemManagement 
 ## Usage Examples
 
 ### Development Deployment
+
 ```bash
 # Quick development setup
 ./scripts/containerManagement/deploy-container.sh
@@ -244,6 +274,7 @@ These scripts are designed for easy migration to a centralized SystemManagement 
 ```
 
 ### Production Deployment
+
 ```bash
 # Ensure environment is configured
 cp .env.example .env
@@ -259,6 +290,7 @@ cp .env.example .env
 ```
 
 ### Troubleshooting
+
 ```bash
 # Check status of all components
 ./scripts/containerManagement/get-container-status.sh
@@ -270,4 +302,5 @@ kubectl describe pods -n session-database
 kubectl logs -n session-database -l app.kubernetes.io/name=session-database
 ```
 
-This documentation ensures consistent usage patterns across the distributed system and provides a clear migration path to the SystemManagement project.
+This documentation ensures consistent usage patterns across the distributed
+system and provides a clear migration path to the SystemManagement project.

@@ -1,14 +1,20 @@
+# Pull Request
+
 ## Description
+
 Brief description of changes made.
 
 ## Type of change
+
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Breaking change (fix or feature that would cause existing
+      functionality to not work as expected)
 - [ ] Documentation update
 - [ ] Security improvement
 
 ## Testing
+
 - [ ] Tested locally with Minikube
 - [ ] Verified Redis connection and authentication
 - [ ] Ran session management scripts
@@ -16,6 +22,7 @@ Brief description of changes made.
 - [ ] Tested deployment scripts
 
 ## Checklist
+
 - [ ] My code follows the style guidelines of this project
 - [ ] I have performed a self-review of my own code
 - [ ] I have commented my code, particularly in hard-to-understand areas
@@ -26,10 +33,12 @@ Brief description of changes made.
 - [ ] Any dependent changes have been merged and published in downstream modules
 
 ## Security
+
 - [ ] No secrets or sensitive data in code
 - [ ] Environment variables used for configuration
 - [ ] Kubernetes secrets properly configured
 - [ ] Redis authentication enabled
 
 ## Related Issues
+
 Closes #(issue number)

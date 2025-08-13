@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: 'bug'
-assignees: ''
-
+title: ""
+labels: "bug"
+assignees: ""
 ---
 
 **Describe the bug**
@@ -12,6 +11,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Run command '...'
 2. See error '...'
 
@@ -19,13 +19,15 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Environment:**
- - OS: [e.g. Ubuntu 22.04]
- - Kubernetes version: [e.g. 1.28]
- - Minikube version: [e.g. 1.31]
- - Docker version: [e.g. 24.0]
+
+- OS: [e.g. Ubuntu 22.04]
+- Kubernetes version: [e.g. 1.28]
+- Minikube version: [e.g. 1.31]
+- Docker version: [e.g. 24.0]
 
 **Additional context**
 Add any other context about the problem here, including:
+
 - Session database logs
 - Redis connection details
 - Any error messages

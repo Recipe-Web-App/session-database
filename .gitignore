@@ -46,3 +46,4 @@ Thumbs.db
 
 # pre-commit
 .pre-commit-trivy-cache/
+node_modules/

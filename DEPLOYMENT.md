@@ -1,16 +1,22 @@
 # Session Database & Service Cache Deployment Guide
 
-This guide covers the deployment of the Redis-based session database and service cache system with high availability, comprehensive monitoring, and security hardening.
+This guide covers the deployment of the Redis-based session database and service
+cache
+system with high availability, comprehensive monitoring, and security hardening.
 
 ## Architecture Overview
 
 The modernized session database and cache system now includes:
 
-- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and service cache (DB 1)
+- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and
+  service cache (DB 1)
 - **High Availability**: Redis Sentinel with master-replica setup
-- **Security**: Network policies, TLS encryption, ACL authentication, Pod Security Standards
-- **Monitoring**: Prometheus, Grafana, Alertmanager with comprehensive alerting rules
-- **Automation**: Automated session and cache cleanup via CronJobs with intelligent eviction
+- **Security**: Network policies, TLS encryption, ACL authentication,
+  Pod Security Standards
+- **Monitoring**: Prometheus, Grafana, Alertmanager with comprehensive
+  alerting rules
+- **Automation**: Automated session and cache cleanup via CronJobs with
+  intelligent eviction
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Quality Assurance**: Enhanced pre-commit hooks with security scanning
 
@@ -77,6 +83,7 @@ LOG_LEVEL=INFO
 ```
 
 **Note**: Copy `.env.example` to `.env` and update with your secure passwords:
+
 ```bash
 cp .env.example .env
 # Edit .env with your secure passwords
@@ -112,16 +119,19 @@ helm install session-database ./helm/session-database \
 ### Option 2: GitOps with ArgoCD (Recommended for Production)
 
 1. **Install ArgoCD Application**:
+
 ```bash
 kubectl apply -f k8s/argocd/application.yaml
 ```
 
-2. **For Multi-Environment Setup**:
+1. **For Multi-Environment Setup**:
+
 ```bash
 kubectl apply -f k8s/argocd/applicationset.yaml
 ```
 
-3. **Access ArgoCD UI**:
+1. **Access ArgoCD UI**:
+
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
@@ -131,6 +141,7 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 For development environments and legacy compatibility using containerManagement scripts:
 
 #### Core Redis Deployment
+
 ```bash
 # Deploy Redis HA cluster (Master, Replicas, Sentinel)
 ./scripts/containerManagement/deploy-container.sh
@@ -140,6 +151,7 @@ For development environments and legacy compatibility using containerManagement 
 ```
 
 #### Supporting Services Deployment
+
 ```bash
 # Deploy monitoring, alerting, and security components
 ./scripts/containerManagement/deploy-supporting-services.sh
@@ -149,6 +161,7 @@ For development environments and legacy compatibility using containerManagement 
 ```
 
 #### Complete Script-based Workflow
+
 ```bash
 # Full deployment
 ./scripts/containerManagement/deploy-container.sh
@@ -167,7 +180,9 @@ For development environments and legacy compatibility using containerManagement 
 ./scripts/containerManagement/cleanup-container.sh
 ```
 
-**Note**: These scripts follow consistent patterns across the distributed system and are designed for eventual migration to a SystemManagement project. See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for detailed documentation.
+**Note**: These scripts follow consistent patterns across the distributed system
+and are designed for eventual migration to a SystemManagement project.
+See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for detailed documentation.
 
 ### Option 4: Manual Kubernetes Manifests
 
@@ -178,8 +193,10 @@ For advanced customization or when other deployment methods are not available:
 
 # 1. Shared resources first
 kubectl apply -f k8s/shared/podsecurity.yaml
-kubectl apply -f k8s/templates/secret-template.yaml      # After substituting environment variables
-kubectl apply -f k8s/templates/configmap-template.yaml  # After substituting environment variables
+kubectl apply -f k8s/templates/secret-template.yaml      # After substituting
+                                                              # environment variables
+kubectl apply -f k8s/templates/configmap-template.yaml  # After substituting
+                                                                 # environment variables
 kubectl apply -f k8s/shared/networkpolicy.yaml
 
 # 2. Redis components (choose standalone OR ha deployment)
@@ -209,6 +226,7 @@ kubectl apply -f k8s/shared/tls-certificates.yaml
 ### High Availability Settings
 
 The system automatically configures:
+
 - **Redis Sentinel**: 3 instances for automatic failover
 - **Redis Master**: 1 instance with persistent storage
 - **Redis Replicas**: 2 instances for read scaling
@@ -217,16 +235,19 @@ The system automatically configures:
 ### Security Configuration
 
 #### Network Policies
+
 - Restricts pod-to-pod communication
 - Allows access only from authorized applications
 - Isolates monitoring traffic
 
 #### Pod Security Standards
+
 - Enforces "restricted" security profile
 - Non-root containers with minimal privileges
 - Read-only root filesystems where possible
 
 #### Authentication & Authorization
+
 - Redis ACL with role-based access
 - Dedicated service accounts with minimal RBAC
 - TLS encryption for Redis connections (production)
@@ -234,18 +255,21 @@ The system automatically configures:
 ### Monitoring & Alerting
 
 #### Prometheus Metrics
+
 - Redis instance health and performance
 - Session statistics and cleanup metrics
 - Kubernetes resource utilization
 - Custom business metrics
 
 #### Grafana Dashboards
+
 - Redis cluster overview
 - Session management metrics
 - Resource utilization
 - Alert status and history
 
 #### Alerting Rules
+
 - **Critical**: Redis down, memory exhaustion, cleanup failures
 - **Warning**: High connection count, low hit rate, resource pressure
 - **Info**: Session statistics, cleanup runs
@@ -262,6 +286,7 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 ```
 
 Default credentials:
+
 - **Grafana**: admin/admin (change immediately)
 - **Prometheus**: No authentication (use ingress with auth in production)
 
@@ -280,6 +305,7 @@ kubectl get cronjobs -n session-database
 ### Scaling
 
 #### Manual Scaling
+
 ```bash
 # Scale Redis replicas
 kubectl scale deployment redis-replica -n session-database --replicas=5
@@ -289,23 +315,29 @@ kubectl scale deployment redis-sentinel -n session-database --replicas=5
 ```
 
 #### Automatic Scaling
+
 The system includes HorizontalPodAutoscaler for automatic scaling based on:
+
 - CPU utilization (70% threshold)
 - Memory utilization (80% threshold)
 
 ### Backup & Recovery
 
 #### Manual Backup
+
 ```bash
 # Create Redis backup
-kubectl exec -n session-database redis-master-xxx -- redis-cli -a $REDIS_PASSWORD BGSAVE
+kubectl exec -n session-database redis-master-xxx -- \
+  redis-cli -a $REDIS_PASSWORD BGSAVE
 
 # Export backup
 kubectl cp session-database/redis-master-xxx:/data/dump.rdb ./backup-$(date +%Y%m%d).rdb
 ```
 
 #### Automated Backup (Recommended)
+
 Configure external backup solutions like:
+
 - AWS EBS snapshots for persistent volumes
 - Velero for full cluster backups
 - Custom backup CronJobs with S3 storage
@@ -313,13 +345,16 @@ Configure external backup solutions like:
 ### Disaster Recovery
 
 #### Master Failover
+
 Redis Sentinel automatically handles master failover:
+
 1. Detects master failure
 2. Promotes a replica to master
 3. Reconfigures other replicas
 4. Updates application endpoints
 
 #### Full Cluster Recovery
+
 ```bash
 # Restore from backup
 kubectl cp ./backup-20240101.rdb session-database/redis-master-xxx:/data/dump.rdb
@@ -355,10 +390,10 @@ spec:
   target:
     name: session-database-secret
   data:
-  - secretKey: redis-password
-    remoteRef:
-      key: session-database
-      property: redis-password
+    - secretKey: redis-password
+      remoteRef:
+        key: session-database
+        property: redis-password
 ```
 
 ## Troubleshooting
@@ -389,10 +424,12 @@ spec:
 
 ```bash
 # Check Redis master status
-kubectl exec -n session-database redis-master-xxx -- redis-cli -a $REDIS_PASSWORD info replication
+kubectl exec -n session-database redis-master-xxx -- \
+  redis-cli -a $REDIS_PASSWORD info replication
 
 # Check Sentinel status
-kubectl exec -n session-database redis-sentinel-xxx -- redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
+kubectl exec -n session-database redis-sentinel-xxx -- \
+  redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
 
 # View cleanup job logs
 kubectl logs -n session-database -l component=maintenance
@@ -406,6 +443,7 @@ kubectl exec -n session-database redis-master-xxx -- nslookup redis-replica-serv
 ### Redis Configuration
 
 Key performance settings in production:
+
 ```yaml
 redis:
   config:
@@ -418,6 +456,7 @@ redis:
 ### Kubernetes Resources
 
 Adjust based on your workload:
+
 ```yaml
 resources:
   requests:
@@ -431,6 +470,7 @@ resources:
 ### Storage Performance
 
 Use high-performance storage classes:
+
 - AWS: gp3 or io2
 - GCP: pd-ssd
 - Azure: Premium_LRS
@@ -457,6 +497,7 @@ Use high-performance storage classes:
 ### Updates
 
 #### Application Updates
+
 ```bash
 # Update via Helm
 helm upgrade session-database ./helm/session-database \
@@ -468,6 +509,7 @@ helm upgrade session-database ./helm/session-database \
 ```
 
 #### Security Updates
+
 ```bash
 # Update base images
 docker build --no-cache -t session-database:new-version .
@@ -476,4 +518,6 @@ docker build --no-cache -t session-database:new-version .
 pre-commit run --all-files
 ```
 
-This deployment provides enterprise-grade Redis session storage with comprehensive monitoring, security, and operational capabilities suitable for production workloads.
+This deployment provides enterprise-grade Redis session storage with
+comprehensive monitoring, security, and operational capabilities suitable for
+production workloads.

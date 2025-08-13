@@ -1,12 +1,16 @@
 # Session Database
 
-An enterprise-grade Redis-based session storage and service cache system with high availability, comprehensive security, and production-ready monitoring for microservices architectures.
+An enterprise-grade Redis-based session storage and service cache system with
+high availability, comprehensive security, and production-ready monitoring for
+microservices architectures.
 
 ## Overview
 
-This repository provides a modernized Redis database deployment with enterprise-grade features:
+This repository provides a modernized Redis database deployment with
+enterprise-grade features:
 
-- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and service cache (DB 1)
+- **Multi-Database Architecture**: Isolated databases for sessions (DB 0)
+  and service cache (DB 1)
 - **High Availability**: Redis Sentinel cluster with automatic failover
 - **Comprehensive Security**: Network policies, TLS encryption, ACL authentication
 - **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 20+ alerting rules
@@ -17,59 +21,72 @@ This repository provides a modernized Redis database deployment with enterprise-
 ## Architecture
 
 ### Core Components
+
 - **Redis Sentinel HA**: 3-node Sentinel cluster monitoring master-replica setup
 - **Redis Master**: Primary instance with persistent storage (10-50GB)
 - **Redis Replicas**: 2-3 read replicas for load distribution and failover
-- **Session Management**: TTL-based sessions with automated cleanup every 5 minutes (DB 0)
+- **Session Management**: TTL-based sessions with automated cleanup
+  every 5 minutes (DB 0)
 - **Service Cache**: TTL-based caching system for resource data (DB 1)
 - **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
 
 ### Security & Monitoring
+
 - **Network Policies**: Strict pod-to-pod communication rules
 - **Pod Security Standards**: Enforced "restricted" security profile
 - **TLS Encryption**: Optional Redis connection encryption
-- **ACL Authentication**: Role-based Redis access (7 user types including cache)
-- **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager stack with dual Redis exporters
+- **ACL Authentication**: Role-based Redis access (7 user types
+  including cache)
+- **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager stack
+  with dual Redis exporters
 - **Automated Alerting**: 20+ critical and warning alerts for proactive response
 
-### Deployment Options
+### Available Deployment Methods
+
 - **Helm Charts**: Production-ready Kubernetes deployment
 - **GitOps**: ArgoCD integration with multi-environment support
 - **Script-based**: containerManagement scripts for development (standalone mode)
-- **Manual HA**: Full HA deployment with Redis master, replicas, and Sentinel available via raw manifests
+- **Manual HA**: Full HA deployment with Redis master, replicas, and
+  Sentinel available via raw manifests
 
 ## Features
 
 - **High Availability**: Sub-minute automatic failover with zero data loss
 - **Session Storage**: Persistent session data with configurable TTL (1-24 hours)
-- **Service Cache**: Isolated cache database for resource data with TTL-based expiration
+- **Service Cache**: Isolated cache database for resource data with
+  TTL-based expiration
 - **Token Management**: Refresh tokens (7-14 days) and deletion tokens
 - **Auto-scaling**: HPA based on CPU (70%) and memory (80%) thresholds
 - **Backup & Recovery**: Multi-database backup with point-in-time recovery
 - **Security Hardening**: Multi-layer security with network isolation
-- **Performance Optimized**: Independent memory management and connection pooling per database
+- **Performance Optimized**: Independent memory management and
+  connection pooling per database
 
 ## Quick Start
 
 ### Prerequisites
 
 **For Script-based Deployment:**
+
 - Docker and Docker Compose
 - Minikube (for local development)
 - kubectl and jq
 
 **For Helm Deployment:**
+
 - Kubernetes cluster (1.25+)
 - Helm 3.x
 - kubectl configured
 
 **For GitOps Deployment:**
+
 - ArgoCD installed in cluster
 - Git repository access
 
 ### Environment Setup
 
 1. **Clone and configure**:
+
    ```bash
    git clone <repository-url>
    cd session-database
@@ -78,6 +95,7 @@ This repository provides a modernized Redis database deployment with enterprise-
    ```
 
 2. **Environment Variables** (All Required):
+
    ```bash
    # Core Redis Authentication
    REDIS_PASSWORD=your-secure-redis-password
@@ -91,21 +109,24 @@ This repository provides a modernized Redis database deployment with enterprise-
    CACHE_PASSWORD=your-cache-password      # Service cache operations
    ```
 
-## Deployment Options
+## Deployment Guide
 
 ### Option 1: Script-based Deployment (Development/Legacy)
 
 1. **Deploy Redis HA cluster**:
+
    ```bash
    ./scripts/containerManagement/deploy-container.sh
    ```
 
 2. **Deploy monitoring and security**:
+
    ```bash
    ./scripts/containerManagement/deploy-monitoring.sh
    ```
 
 3. **Check status**:
+
    ```bash
    ./scripts/containerManagement/get-container-status.sh
    ```
@@ -113,6 +134,7 @@ This repository provides a modernized Redis database deployment with enterprise-
 ### Option 2: Helm Deployment (Recommended)
 
 1. **Development deployment**:
+
    ```bash
    helm install session-database ./helm/session-database \
      --namespace session-database --create-namespace \
@@ -121,6 +143,7 @@ This repository provides a modernized Redis database deployment with enterprise-
    ```
 
 2. **Production deployment**:
+
    ```bash
    helm install session-database ./helm/session-database \
      --namespace session-database --create-namespace \
@@ -130,20 +153,24 @@ This repository provides a modernized Redis database deployment with enterprise-
 ### Option 3: GitOps with ArgoCD (Production)
 
 1. **Deploy ArgoCD Application**:
+
    ```bash
    kubectl apply -f k8s/argocd/application.yaml
    ```
 
 2. **Multi-environment setup**:
+
    ```bash
    kubectl apply -f k8s/argocd/applicationset.yaml
    ```
 
 ## Container Management Scripts
 
-The containerManagement scripts provide consistent deployment patterns across the distributed system:
+The containerManagement scripts provide consistent deployment patterns
+across the distributed system:
 
 ### Core Container Scripts (Redis Cluster)
+
 - **`deploy-container.sh`**: Deploy Redis HA cluster (Master, Replicas, Sentinel)
 - **`start-container.sh`**: Start Redis cluster components
 - **`stop-container.sh`**: Stop Redis cluster components
@@ -151,6 +178,7 @@ The containerManagement scripts provide consistent deployment patterns across th
 - **`get-container-status.sh`**: Check Redis cluster health and status
 
 ### Supporting Services Scripts (Monitoring & Security)
+
 - **`deploy-monitoring.sh`**: Deploy monitoring, alerting, and security
 - **`cleanup-monitoring.sh`**: Clean up monitoring and security components
 
@@ -189,6 +217,7 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 ```
 
 ### Key Metrics & Alerts
+
 - **Redis Cluster Health**: Master/replica/sentinel status
 - **Session Management**: Active sessions, cleanup success rate
 - **Performance**: Memory usage, connection count, hit rate
@@ -197,7 +226,7 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 
 ## Project Structure
 
-```
+```text
 session-database/
 ├── helm/                           # Helm charts (recommended deployment)
 │   └── session-database/           # Main Helm chart
@@ -307,18 +336,30 @@ recipe_data = cache_client.get(f"cache:resource:popular_recipes")
 ### Management Scripts
 
 #### Container Management
-- **Deploy**: `./scripts/containerManagement/deploy-container.sh` - Complete deployment workflow
-- **Start**: `./scripts/containerManagement/start-container.sh` - Scale deployment to 1 replica
-- **Stop**: `./scripts/containerManagement/stop-container.sh` - Scale deployment to 0 replicas
-- **Status**: `./scripts/containerManagement/get-container-status.sh` - Check deployment status
-- **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` - Full cleanup with prompts
-- **Monitoring**: `./scripts/containerManagement/deploy-monitoring.sh` - Deploy monitoring stack
-- **Monitoring Cleanup**: `./scripts/containerManagement/cleanup-monitoring.sh` - Cleanup monitoring stack
+
+- **Deploy**: `./scripts/containerManagement/deploy-container.sh` -
+  Complete deployment workflow
+- **Start**: `./scripts/containerManagement/start-container.sh` -
+  Scale deployment to 1 replica
+- **Stop**: `./scripts/containerManagement/stop-container.sh` -
+  Scale deployment to 0 replicas
+- **Status**: `./scripts/containerManagement/get-container-status.sh` -
+  Check deployment status
+- **Cleanup**: `./scripts/containerManagement/cleanup-container.sh` -
+  Full cleanup with prompts
+- **Monitoring**: `./scripts/containerManagement/deploy-monitoring.sh` -
+  Deploy monitoring stack
+- **Monitoring Cleanup**:
+  `./scripts/containerManagement/cleanup-monitoring.sh` -
+  Cleanup monitoring stack
 
 #### Database Management
-- **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh [0|1]` (DB 0=sessions, DB 1=cache)
+
+- **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh [0|1]`
+  (DB 0=sessions, DB 1=cache)
 - **Cache-specific connection**: `./scripts/dbManagement/cache-connect.sh`
-- **Backup databases**: `./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]`
+- **Backup databases**:
+  `./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]`
 - **Cache information**: `./scripts/dbManagement/show-cache-info.sh`
 - **Monitor sessions**: `./scripts/dbManagement/monitor-sessions.sh`
 - **Health check**: `./scripts/jobHelpers/session-health-check.sh`
@@ -351,7 +392,8 @@ CACHE_MAX_ENTRIES_PER_SERVICE=10000
 LOG_LEVEL=INFO
 ```
 
-The deployment scripts use environment variable substitution for ConfigMap and Secret templates, making configuration dynamic and secure.
+The deployment scripts use environment variable substitution for ConfigMap
+and Secret templates, making configuration dynamic and secure.
 
 ### Redis Configuration
 
@@ -366,16 +408,121 @@ The Redis configuration is optimized for session management:
 ### Setup Development Environment
 
 1. **Install pre-commit hooks**:
+
    ```bash
    pip install pre-commit
    pre-commit install
+   pre-commit install --hook-type commit-msg
    ```
 
-2. **Run tests**:
+2. **Configure git commit template** (optional):
+
+   ```bash
+   git config commit.template .gitmessage
+   ```
+
+3. **Run tests**:
+
    ```bash
    # Test Redis connection
-kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password ping  # pragma: allowlist secret
+   kubectl exec -n session-database <pod-name> -- \
+     redis-cli -a redis_password ping  # pragma: allowlist secret
    ```
+
+### Commit Message Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/)
+for consistent commit messages and automated releases.
+
+#### Commit Message Format
+
+```text
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+#### Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `build`: Changes that affect the build system or external dependencies
+- `ci`: Changes to our CI configuration files and scripts
+- `chore`: Other changes that don't modify src or test files
+- `revert`: Reverts a previous commit
+
+#### Examples
+
+```bash
+feat: add Redis Sentinel support for high availability
+fix(auth): resolve Redis authentication timeout issue
+docs: update deployment guide with Helm instructions
+feat!: remove deprecated standalone Redis setup
+```
+
+#### Breaking Changes
+
+Add `BREAKING CHANGE:` in the footer or `!` after the type/scope for breaking changes:
+
+```bash
+feat!: migrate to Redis 7.0 with new ACL system
+
+BREAKING CHANGE: Redis ACL authentication is now required.
+Update your connection strings to include ACL credentials.
+```
+
+### Automated Releases
+
+The project uses automated semantic versioning and releases based on
+conventional commits:
+
+#### Release Triggers
+
+- **Patch**: `fix`, `perf`, `docs`, `refactor`, `build` commits
+- **Minor**: `feat` commits
+- **Major**: Any commit with `BREAKING CHANGE:` or `!` suffix
+
+#### Release Artifacts
+
+Each release automatically generates:
+
+1. **Git Tag**: Semantic version (e.g., `v1.2.3`)
+2. **GitHub Release**: Release notes from commit messages
+3. **Docker Images**: Multi-arch images pushed to GitHub Container Registry
+   - `ghcr.io/recipe-web-app/session-database:latest`
+   - `ghcr.io/recipe-web-app/session-database:v1.2.3`
+4. **Helm Chart**: Packaged chart attached to GitHub release
+5. **Changelog**: Auto-generated `CHANGELOG.md` with categorized changes
+
+#### Release Workflow
+
+1. **Commit**: Use conventional commit format
+2. **Push to main**: Triggers automated release workflow
+3. **Semantic Release**: Analyzes commits and determines version bump
+4. **Artifacts**: Docker images and Helm charts are built and published
+5. **Documentation**: Changelog and release notes are updated
+
+#### Manual Release
+
+To trigger a release manually or test locally:
+
+```bash
+# Install semantic-release tools
+npm install -g semantic-release @semantic-release/changelog @semantic-release/git
+
+# Dry run (shows what would be released)
+npx semantic-release --dry-run
+
+# Create release (CI does this automatically)
+npx semantic-release
+```
 
 ### Code Quality
 
@@ -388,7 +535,8 @@ The project uses several tools to maintain code quality:
 
 ### Monitoring Stack
 
-The project includes a comprehensive monitoring stack with Prometheus, Grafana, and security monitoring:
+The project includes a comprehensive monitoring stack with Prometheus,
+Grafana, and security monitoring:
 
 #### Deploy Monitoring Stack
 
@@ -398,24 +546,29 @@ The project includes a comprehensive monitoring stack with Prometheus, Grafana, 
 ```
 
 This deploys:
+
 - **Prometheus**: Metrics collection and storage
 - **Grafana**: Visualization and dashboards
 - **Redis Exporter**: Redis metrics collection
 
-#### Access Monitoring Tools
+#### Access Monitoring Dashboard Tools
 
-- **Prometheus**: http://prometheus.local
-- **Grafana**: http://grafana.local (admin/admin)
+- **Prometheus**: <http://prometheus.local>
+- **Grafana**: <http://grafana.local> (admin/admin)
 
 **Setup Access:**
 The deployment script automatically updates `/etc/hosts` for easy access.
 
 **Manual options:**
+
 1. **Option 1**: Add to `/etc/hosts`:
+
    ```bash
    $(minikube ip) prometheus.local grafana.local
    ```
+
 2. **Option 2**: Use Minikube tunnel:
+
    ```bash
    sudo minikube tunnel
    ```
@@ -423,33 +576,37 @@ The deployment script automatically updates `/etc/hosts` for easy access.
 #### Monitoring Components
 
 **Prometheus Configuration** (`k8s/monitoring/prometheus.yaml`):
+
 - Scrapes Redis metrics via redis-exporter
 - Stores metrics with 200h retention
 - Configurable scrape intervals
 
 **Grafana Dashboards** (`k8s/monitoring/grafana-dashboards-config.yaml`):
+
 - Redis monitoring dashboard
 - Memory usage, connected clients
 - Commands per second, keyspace hits
 
 **Redis Exporter** (`k8s/monitoring/redis-exporter.yaml`):
+
 - Exposes Redis metrics to Prometheus
 - Authenticated connection to Redis
 - Custom metrics for session management
-
-
 
 ### Redis Statistics
 
 ```bash
 # Get Redis info
-kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password info  # pragma: allowlist secret
+kubectl exec -n session-database <pod-name> -- \
+  redis-cli -a redis_password info  # pragma: allowlist secret
 
 # Get memory usage
-kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password info memory  # pragma: allowlist secret
+kubectl exec -n session-database <pod-name> -- \
+  redis-cli -a redis_password info memory  # pragma: allowlist secret
 
 # Get session keys
-kubectl exec -n session-database <pod-name> -- redis-cli -a redis_password KEYS "session:*"  # pragma: allowlist secret
+kubectl exec -n session-database <pod-name> -- \
+  redis-cli -a redis_password KEYS "session:*"  # pragma: allowlist secret
 ```
 
 ### Health Checks
@@ -533,16 +690,22 @@ cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
 ### Key Integration Points
 
 #### Session Management (DB 0)
+
 - **Session Storage**: Store session data with TTL
 - **Session Retrieval**: Get session data by ID
 - **Session Cleanup**: Handle expired sessions
 - **User Session Tracking**: Track multiple sessions per user
 
 #### Service Cache (DB 1)
-- **Resource Cache**: Currently used by recipe scraper service (`cache:resource:popular_recipes`)
-- **Simple TTL-based**: 24-hour cache expiration with automatic cleanup
-- **Extensible**: Additional cache patterns can be added following `cache:resource:*` format
+
+- **Resource Cache**: Currently used by recipe scraper service
+  (`cache:resource:popular_recipes`)
+- **Simple TTL-based**: 24-hour cache expiration with automatic
+  cleanup
+- **Extensible**: Additional cache patterns can be added following
+  `cache:resource:*` format
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 -
+see the [LICENSE](LICENSE) file for details.

@@ -8,16 +8,18 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within this project, please send an email to [your-email@example.com]. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within this project, please send an
+email to [your-email@example.com]. All security vulnerabilities will be
+promptly addressed.
 
-### What to include in your report:
+### What to include in your report
 
 1. **Description** - A clear description of the vulnerability
 2. **Steps to reproduce** - Detailed steps to reproduce the issue
 3. **Impact** - Potential impact of the vulnerability
 4. **Suggested fix** - If you have a suggested fix (optional)
 
-### Response timeline:
+### Response timeline
 
 - **Initial response**: Within 48 hours
 - **Status update**: Within 1 week
@@ -28,18 +30,21 @@ If you discover a security vulnerability within this project, please send an ema
 This session database includes several security measures:
 
 ### Redis Security
+
 - Password authentication enabled
 - Network isolation via Kubernetes
 - Memory limits to prevent DoS attacks
 - Session TTL to prevent session hijacking
 
 ### Container Security
+
 - Minimal Alpine Linux base image
 - Non-root user execution
 - Regular security updates via Dependabot
 - Vulnerability scanning in CI/CD
 
 ### Infrastructure Security
+
 - Kubernetes secrets for sensitive data
 - Network policies for access control
 - Persistent volume encryption (if enabled)

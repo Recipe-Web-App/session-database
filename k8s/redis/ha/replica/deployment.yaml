@@ -8,7 +8,7 @@ metadata:
     app: redis-replica
     component: ha
 spec:
-  replicas: 2  # Multiple replicas for HA
+  replicas: 1  # Single replica to reduce CPU usage
   strategy:
     type: RollingUpdate
     rollingUpdate:

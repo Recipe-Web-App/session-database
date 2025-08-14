@@ -59,7 +59,7 @@ ha:
   # Redis Sentinel configuration
   sentinel:
     enabled: true
-    replicas: 3
+    replicas: 1
     downAfterMilliseconds: 5000
     failoverTimeout: 10000
     parallelSyncs: 1
@@ -92,7 +92,7 @@ ha:
 
   # Redis Replica configuration
   replica:
-    replicas: 2
+    replicas: 1
     persistence:
       enabled: false
 

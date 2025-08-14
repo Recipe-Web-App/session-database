@@ -8,7 +8,7 @@ metadata:
     app: redis-cache-exporter
     component: monitoring
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: redis-cache-exporter

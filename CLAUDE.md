@@ -5,10 +5,10 @@ code in this repository.
 
 ## Project Overview
 
-This is an enterprise-grade Redis-based session storage service for
+This is an enterprise-grade Redis-based OAuth2 authentication service for
 microservices with high availability, comprehensive security, and
 production-ready monitoring. The system has been modernized from a basic Redis
-setup to a fully-featured, production-ready deployment.
+setup to a fully-featured, production-ready OAuth2 service deployment.
 
 ## Architecture
 
@@ -16,14 +16,16 @@ setup to a fully-featured, production-ready deployment.
 
 - **High Availability Redis**: Redis Sentinel with master-replica setup for
   automatic failover
-- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and
-  service cache (DB 1)
-- **Session Management**: TTL-based sessions with automated cleanup via CronJob
+- **Multi-Database Architecture**: Isolated databases for OAuth2 auth service
+  (DB 0) and service cache (DB 1)
+- **OAuth2 Authentication**: Full OAuth2 server with authorization codes,
+  access/refresh tokens
 - **Service Cache System**: Dedicated caching layer with LRU and TTL-based
   cleanup strategies
-- **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
+- **Token Management**: Complete token lifecycle with automatic cleanup and
+  blacklisting
 - **Security Hardening**: Network policies, TLS encryption, ACL authentication,
-  Pod Security Standards
+  Pod Security Standards, rate limiting
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Comprehensive Monitoring**: Prometheus, Grafana, Alertmanager with 20+
   alerting rules
@@ -86,12 +88,14 @@ The deployment uses a **two-phase startup process** for robust database initiali
    configuration and becomes ready for connections
 2. **Phase 2 - Database Initialization**: Separate Kubernetes Job
    (`k8s/redis/standalone/init-job.yaml`) runs Lua scripts to initialize:
-   - **Session Database (DB 0)**:
-     - Session key structures and indexes
-     - User session tracking systems
-     - Automated session cleanup mechanisms
-     - Refresh token management
-     - Deletion token tracking
+   - **Auth Service Database (DB 0)**:
+     - OAuth2 client registrations and configurations
+     - Authorization code structures and TTL management
+     - Access token and refresh token tracking
+     - User authentication session management
+     - Token blacklisting and revocation systems
+     - Rate limiting structures and counters
+     - Auth service statistics and configuration
    - **Service Cache Database (DB 1)**:
      - Cache key structures for different service types
      - Cache cleanup and eviction tracking
@@ -103,15 +107,15 @@ initialization, improving reliability and startup time.
 
 ### Automated Operations
 
-- **Session Cleanup CronJob**: Runs every 5 minutes to clean expired
-  sessions/tokens (`k8s/redis/shared/`)
+- **Token Cleanup CronJob**: Runs every 5 minutes to clean expired
+  OAuth2 tokens and authorization codes (`k8s/redis/shared/`)
 - **Cache Cleanup CronJob**: Runs every 10 minutes to clean expired cache
   entries with LRU eviction
 - **Health Checks**: Comprehensive liveness, readiness, and startup probes
 - **Autoscaling**: HPA based on CPU (70%) and memory (80%) utilization
   (`k8s/redis/autoscaling/`)
 - **Multi-Database Backup**: Configurable backup strategies supporting both
-  session and cache databases
+  auth service and cache databases
 - **Performance Monitoring**: Cache hit ratio tracking and performance metrics collection
 
 ## Common Commands
@@ -189,17 +193,17 @@ documentation and SystemManagement project compatibility.
 
 ```bash
 # Connect to Redis databases
-# Connect to session database
+# Connect to auth service database
 kubectl exec -it deployment/session-database -n session-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 0  # Session DB
+  redis-cli -a $REDIS_PASSWORD -n 0  # Auth DB
 # Connect to cache database
 kubectl exec -it deployment/session-database -n session-database -- \
   redis-cli -a $REDIS_PASSWORD -n 1  # Cache DB
 
 # Connect to Redis HA master
-# Connect to HA master session database
+# Connect to HA master auth service database
 kubectl exec -it deployment/redis-master -n session-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 0      # Session DB
+  redis-cli -a $REDIS_PASSWORD -n 0      # Auth DB
 # Connect to HA master cache database
 kubectl exec -it deployment/redis-master -n session-database -- \
   redis-cli -a $REDIS_PASSWORD -n 1      # Cache DB
@@ -213,13 +217,16 @@ kubectl exec -it deployment/redis-sentinel -n session-database -- \
 kubectl logs -n session-database -l component=maintenance -f
 
 # Database management scripts
-# Interactive Redis connection (DB 0=sessions, DB 1=cache)
+# Interactive Redis connection (DB 0=auth, DB 1=cache)
 ./scripts/dbManagement/redis-connect.sh [0|1]
+# Auth-specific Redis connection with utilities
+./scripts/dbManagement/auth-connect.sh
 # Cache-specific Redis connection with utilities
 ./scripts/dbManagement/cache-connect.sh
-./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]  # Backup database(s)
-./scripts/dbManagement/monitor-sessions.sh        # Monitor session metrics
-./scripts/jobHelpers/session-health-check.sh      # Comprehensive health check
+./scripts/dbManagement/backup-auth.sh [all|auth|cache]  # Backup database(s)
+./scripts/dbManagement/monitor-auth.sh             # Monitor OAuth2 auth metrics
+./scripts/dbManagement/show-auth-info.sh           # Comprehensive auth service info
+./scripts/jobHelpers/session-health-check.sh       # Comprehensive health check
 ```
 
 ### Monitoring Access
@@ -241,19 +248,27 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 
 The system uses **Redis logical databases** to provide complete data isolation:
 
-#### Session Database (DB 0)
+#### Auth Service Database (DB 0)
 
-- **Sessions**: `session:{session_id}` (hash with TTL) - stores complete
-  session data
-- **User Sessions**: `user_sessions:{user_id}` (set) - tracks active sessions
-  per user
-- **Refresh Tokens**: `refresh_token:{token}` (hash with TTL) - JWT refresh tokens
-- **Deletion Tokens**: `deletion_token:{token}` (hash with TTL) - secure
-  deletion tokens
-- **Session Cleanup**: `session_cleanup` (sorted set) - expiration timestamps
-  for efficient cleanup
-- **Session Statistics**: `session_stats` (hash) - metrics and counters
-- **Session Configuration**: `session_config` (hash) - TTL and limits configuration
+- **OAuth2 Clients**: `auth:client:{client_id}` (hash) - OAuth2 client
+  registrations with credentials and configuration
+- **Authorization Codes**: `auth:code:{code}` (hash with TTL) - temporary
+  OAuth2 authorization codes for token exchange
+- **Access Tokens**: `auth:access_token:{token}` (hash with TTL) - access
+  token metadata for validation and introspection
+- **Refresh Tokens**: `auth:refresh_token:{token}` (hash with TTL) - refresh
+  token metadata for token rotation
+- **Auth Sessions**: `auth:session:{session_id}` (hash with TTL) - user
+  authentication session storage
+- **Token Blacklist**: `auth:blacklist:{token}` (string with TTL) -
+  revoked/compromised token tracking
+- **Rate Limiting**: `auth:rate_limit:{key}` (integer with TTL) - request
+  rate limiting counters (IP/client/endpoint based)
+- **Token Cleanup**: `auth_token_cleanup` (sorted set) - expiration
+  timestamps for efficient cleanup
+- **Auth Statistics**: `auth_stats` (hash) - OAuth2 metrics and counters
+- **Auth Configuration**: `auth_config` (hash) - TTL settings, limits, and
+  OAuth2 configuration
 
 #### Service Cache Database (DB 1)
 
@@ -270,16 +285,16 @@ following the `cache:resource:*` format.
 
 ### Performance Optimizations
 
-- **Database Isolation**: Complete separation prevents session and cache
+- **Database Isolation**: Complete separation prevents OAuth2 auth and cache
   operations from interfering
 - **Memory Management**: Independent LRU eviction policies per database with
   configurable limits
-- **Persistence**: AOF + RDB with optimized settings for both session and cache workloads
+- **Persistence**: AOF + RDB with optimized settings for both auth and cache workloads
 - **Connection Pooling**: TCP keepalive and connection limit configurations
-- **Data Structures**: Optimized ziplist settings for both session and cache
+- **Data Structures**: Optimized ziplist settings for both auth and cache
   data patterns
-- **Cache Strategies**: Simple TTL-based expiration (Redis handles cleanup automatically)
-- **Monitoring Granularity**: Separate Redis exporters for session and cache databases
+- **Token Strategies**: Automatic TTL-based expiration with cleanup jobs
+- **Monitoring Granularity**: Separate Redis exporters for auth and cache databases
 
 ## Configuration Management
 
@@ -326,6 +341,24 @@ ha:
   replica:
     replicas: 3
 
+# OAuth2 Auth Service Configuration
+authService:
+  database: 0 # Auth database number
+  tokenTTL:
+    authorizationCode: 600 # 10 minutes
+    accessToken: 900 # 15 minutes
+    refreshToken: 604800 # 7 days
+    sessionTimeout: 3600 # 1 hour
+  rateLimiting:
+    enabled: true
+    defaultRequestsPerMinute: 100
+    clientRequestsPerMinute: 1000
+    ipRequestsPerMinute: 50
+  cleanup:
+    enabled: true
+    schedule: "*/5 * * * *" # Every 5 minutes
+    batchSize: 500
+
 # Service Cache Configuration
 serviceCache:
   database: 1 # Cache database number
@@ -356,7 +389,7 @@ monitoring:
   alertmanager:
     enabled: true
   redisExporter:
-    enabled: true # Monitors session database
+    enabled: true # Monitors auth database
   redisCacheExporter:
     enabled: true # Monitors cache database
 ```

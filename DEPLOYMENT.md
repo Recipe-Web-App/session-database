@@ -1,21 +1,23 @@
-# Session Database & Service Cache Deployment Guide
+# OAuth2 Authentication Service & Service Cache Deployment Guide
 
-This guide covers the deployment of the Redis-based session database and service
-cache
-system with high availability, comprehensive monitoring, and security hardening.
+This guide covers the deployment of the Redis-based OAuth2 authentication service
+and service cache system with high availability, comprehensive monitoring, and
+security hardening.
 
 ## Architecture Overview
 
-The modernized session database and cache system now includes:
+The modernized OAuth2 authentication service and cache system now includes:
 
-- **Multi-Database Architecture**: Isolated databases for sessions (DB 0) and
-  service cache (DB 1)
+- **Multi-Database Architecture**: Isolated databases for OAuth2 authentication
+  (DB 0) and service cache (DB 1)
+- **OAuth2 Authentication**: Complete OAuth2 server with client management,
+  token lifecycle
 - **High Availability**: Redis Sentinel with master-replica setup
 - **Security**: Network policies, TLS encryption, ACL authentication,
-  Pod Security Standards
+  Pod Security Standards, rate limiting
 - **Monitoring**: Prometheus, Grafana, Alertmanager with comprehensive
   alerting rules
-- **Automation**: Automated session and cache cleanup via CronJobs with
+- **Automation**: Automated token and cache cleanup via CronJobs with
   intelligent eviction
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Quality Assurance**: Enhanced pre-commit hooks with security scanning

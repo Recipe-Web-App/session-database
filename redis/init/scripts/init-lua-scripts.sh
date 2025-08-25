@@ -13,30 +13,14 @@ done
 
 echo "✅ Redis is ready for initialization"
 
-# Initialize session management system with Lua scripts
-echo "Initializing session management system..."
+# Initialize auth service system with Lua scripts
+echo "Initializing auth service system..."
 
 # Run initialization scripts
 if [ -n "${REDIS_PASSWORD:-}" ]; then
-  # Initialize session keys and structures
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/001_init_session_keys.lua
-  echo "✅ Session keys initialized"
-
-  # Initialize user session tracking
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/002_init_user_sessions.lua
-  echo "✅ User session tracking initialized"
-
-  # Initialize session cleanup
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/003_init_session_cleanup.lua
-  echo "✅ Session cleanup initialized"
-
-  # Initialize refresh token management
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
-  echo "✅ Refresh token management initialized"
-
-  # Initialize deletion token management
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
-  echo "✅ Deletion token management initialized"
+  # Initialize auth service structures
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/001_init_auth_service.lua
+  echo "✅ Auth service initialized"
 
   # Initialize service cache (DB 1)
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/006_init_service_cache.lua
@@ -46,25 +30,9 @@ if [ -n "${REDIS_PASSWORD:-}" ]; then
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --eval /usr/local/etc/redis/scripts/007_init_cache_cleanup.lua
   echo "✅ Cache cleanup system initialized"
 else
-  # Initialize session keys and structures
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/001_init_session_keys.lua
-  echo "✅ Session keys initialized"
-
-  # Initialize user session tracking
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/002_init_user_sessions.lua
-  echo "✅ User session tracking initialized"
-
-  # Initialize session cleanup
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/003_init_session_cleanup.lua
-  echo "✅ Session cleanup initialized"
-
-  # Initialize refresh token management
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/004_init_refresh_tokens.lua
-  echo "✅ Refresh token management initialized"
-
-  # Initialize deletion token management
-  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/005_init_deletion_tokens.lua
-  echo "✅ Deletion token management initialized"
+  # Initialize auth service structures
+  redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/001_init_auth_service.lua
+  echo "✅ Auth service initialized"
 
   # Initialize service cache (DB 1)
   redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --eval /usr/local/etc/redis/scripts/006_init_service_cache.lua
@@ -75,4 +43,4 @@ else
   echo "✅ Cache cleanup system initialized"
 fi
 
-echo "🎉 Session management system initialization complete!"
+echo "🎉 Auth service system initialization complete!"

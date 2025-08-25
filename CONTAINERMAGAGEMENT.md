@@ -27,7 +27,7 @@ These scripts manage the core Redis high-availability cluster:
 - Redis Master (primary instance with persistent storage)
 - Redis Replicas (2-3 read replicas for scaling and failover)
 - Redis Sentinel (3-node cluster for automatic failover)
-- Session Cleanup CronJob (automated expired session removal)
+- Token Cleanup CronJob (automated expired OAuth2 token removal)
 - Core RBAC and service accounts
 - Persistent volumes and storage
 

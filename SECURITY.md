@@ -27,14 +27,14 @@ promptly addressed.
 
 ## Security Features
 
-This session database includes several security measures:
+This OAuth2 authentication service includes several security measures:
 
 ### Redis Security
 
 - Password authentication enabled
 - Network isolation via Kubernetes
 - Memory limits to prevent DoS attacks
-- Session TTL to prevent session hijacking
+- Token TTL to prevent token theft and replay attacks
 
 ### Container Security
 
@@ -55,8 +55,8 @@ This session database includes several security measures:
 1. **Never commit secrets** - Use environment variables and Kubernetes secrets
 2. **Regular updates** - Keep dependencies and base images updated
 3. **Monitor logs** - Check for suspicious activity
-4. **Access control** - Limit who can access the session database
-5. **Backup security** - Encrypt session backups
+4. **Access control** - Limit who can access the OAuth2 auth database
+5. **Backup security** - Encrypt auth service backups
 
 ## Security Tools
 

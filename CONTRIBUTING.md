@@ -1,8 +1,9 @@
-# Contributing to Session Database
+# Contributing to OAuth2 Authentication Service
 
-Thank you for your interest in contributing to the Session Database project!
-This document provides guidelines for contributing to this Redis-based session
-storage and service cache system.
+Thank you for your interest in contributing to the OAuth2 Authentication Service
+project!
+This document provides guidelines for contributing to this Redis-based OAuth2
+authentication and service cache system.
 
 ## Development Setup
 
@@ -94,7 +95,7 @@ feat: add Redis Sentinel support for high availability
 fix(auth): resolve Redis authentication timeout issue
 docs: update Helm deployment instructions
 perf(cache): optimize Redis connection pooling
-test: add integration tests for session cleanup
+test: add integration tests for token cleanup
 build(deps): bump Redis image to 8.2-alpine
 ci: add automated security scanning workflow
 
@@ -140,7 +141,7 @@ pre-commit run --all-files
 
    ```bash
    # Using Helm (recommended)
-   helm install session-database ./helm/session-database \
+   helm install oauth2-auth ./helm/session-database \
      --namespace session-database --create-namespace
 
    # Or using scripts
@@ -152,13 +153,16 @@ pre-commit run --all-files
    ```bash
    ./scripts/jobHelpers/session-health-check.sh
    ./scripts/containerManagement/get-container-status.sh
+   ./scripts/dbManagement/monitor-auth.sh
    ```
 
 3. **Test Redis connections**:
 
    ```bash
-   # Session database (DB 0)
+   # Auth database (DB 0)
    ./scripts/dbManagement/redis-connect.sh 0
+   # Or use auth-specific connection
+   ./scripts/dbManagement/auth-connect.sh
 
    # Cache database (DB 1)
    ./scripts/dbManagement/redis-connect.sh 1
@@ -337,4 +341,4 @@ Instances of unacceptable behavior may be reported to the project
 maintainers. All complaints will be reviewed and investigated promptly and
 fairly.
 
-Thank you for contributing to the Session Database project!
+Thank you for contributing to the OAuth2 Authentication Service project!

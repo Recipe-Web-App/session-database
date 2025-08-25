@@ -1,20 +1,25 @@
-# Session Database
+# OAuth2 Authentication Service
 
-An enterprise-grade Redis-based session storage and service cache system with
-high availability, comprehensive security, and production-ready monitoring for
-microservices architectures.
+An enterprise-grade Redis-based OAuth2 authentication service and service cache
+system with high availability, comprehensive security, and production-ready
+monitoring for microservices architectures.
 
 ## Overview
 
 This repository provides a modernized Redis database deployment with
 enterprise-grade features:
 
-- **Multi-Database Architecture**: Isolated databases for sessions (DB 0)
-  and service cache (DB 1)
+- **Multi-Database Architecture**: Isolated databases for OAuth2 authentication
+  (DB 0) and service cache (DB 1)
+- **OAuth2 Authentication**: Full OAuth2 server with client management, token
+  lifecycle
 - **High Availability**: Redis Sentinel cluster with automatic failover
-- **Comprehensive Security**: Network policies, TLS encryption, ACL authentication
-- **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 20+ alerting rules
-- **Automated Operations**: Session and cache cleanup CronJobs with TTL-based expiration
+- **Comprehensive Security**: Network policies, TLS encryption, ACL
+  authentication, rate limiting
+- **Advanced Monitoring**: Prometheus, Grafana, Alertmanager with 20+ alerting
+  rules
+- **Automated Operations**: Token and cache cleanup CronJobs with TTL-based
+  expiration
 - **Infrastructure as Code**: Helm charts with GitOps workflow via ArgoCD
 - **Production Ready**: Kubernetes-native deployment with security hardening
 
@@ -25,10 +30,11 @@ enterprise-grade features:
 - **Redis Sentinel HA**: 3-node Sentinel cluster monitoring master-replica setup
 - **Redis Master**: Primary instance with persistent storage (10-50GB)
 - **Redis Replicas**: 2-3 read replicas for load distribution and failover
-- **Session Management**: TTL-based sessions with automated cleanup
-  every 5 minutes (DB 0)
+- **OAuth2 Authentication**: Complete OAuth2 server with authorization codes,
+  access/refresh tokens, client management, and user session tracking (DB 0)
 - **Service Cache**: TTL-based caching system for resource data (DB 1)
-- **Token Systems**: Refresh tokens and deletion tokens with separate TTL management
+- **Token Management**: Comprehensive token lifecycle with automatic cleanup and
+  blacklisting
 
 ### Security & Monitoring
 
@@ -52,10 +58,14 @@ enterprise-grade features:
 ## Features
 
 - **High Availability**: Sub-minute automatic failover with zero data loss
-- **Session Storage**: Persistent session data with configurable TTL (1-24 hours)
+- **OAuth2 Authentication**: Complete OAuth2 server with client registrations,
+  authorization codes, access/refresh tokens, and user authentication sessions
 - **Service Cache**: Isolated cache database for resource data with
   TTL-based expiration
-- **Token Management**: Refresh tokens (7-14 days) and deletion tokens
+- **Token Management**: Access tokens (15 min), refresh tokens (7 days),
+  authorization codes (10 min)
+- **Security Features**: Token blacklisting, rate limiting, secure client
+  management
 - **Auto-scaling**: HPA based on CPU (70%) and memory (80%) thresholds
 - **Backup & Recovery**: Multi-database backup with point-in-time recovery
 - **Security Hardening**: Multi-layer security with network isolation
@@ -305,12 +315,12 @@ Connect to the Redis server from your applications:
 ```python
 import redis
 
-# Connect to Session Database (DB 0)
-session_client = redis.Redis(
+# Connect to Auth Service Database (DB 0)
+auth_client = redis.Redis(
     host='session-database-service.session-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
-    db=0,  # Session database
+    db=0,  # Auth database
     decode_responses=True
 )
 
@@ -323,10 +333,17 @@ cache_client = redis.Redis(
     decode_responses=True
 )
 
-# Session operations (DB 0)
-session_client.setex(f"session:{session_id}", 3600, session_data)
-session_data = session_client.get(f"session:{session_id}")
-session_client.delete(f"session:{session_id}")
+# OAuth2 operations (DB 0)
+# Store OAuth2 client registration
+auth_client.hset(f"auth:client:{client_id}", mapping=client_data)
+
+# Store access token metadata
+auth_client.hset(f"auth:access_token:{token}", mapping=token_metadata)
+auth_client.expire(f"auth:access_token:{token}", 900)  # 15 minutes
+
+# Store user authentication session
+auth_client.hset(f"auth:session:{session_id}", mapping=session_data)
+auth_client.expire(f"auth:session:{session_id}", 3600)  # 1 hour
 
 # Cache operations (DB 1) - Example from recipe scraper service
 cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
@@ -356,12 +373,14 @@ recipe_data = cache_client.get(f"cache:resource:popular_recipes")
 #### Database Management
 
 - **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh [0|1]`
-  (DB 0=sessions, DB 1=cache)
+  (DB 0=auth, DB 1=cache)
+- **Auth-specific connection**: `./scripts/dbManagement/auth-connect.sh`
 - **Cache-specific connection**: `./scripts/dbManagement/cache-connect.sh`
 - **Backup databases**:
-  `./scripts/dbManagement/backup-sessions.sh [all|sessions|cache]`
+  `./scripts/dbManagement/backup-auth.sh [all|auth|cache]`
 - **Cache information**: `./scripts/dbManagement/show-cache-info.sh`
-- **Monitor sessions**: `./scripts/dbManagement/monitor-sessions.sh`
+- **Monitor auth service**: `./scripts/dbManagement/monitor-auth.sh`
+- **Auth service information**: `./scripts/dbManagement/show-auth-info.sh`
 - **Health check**: `./scripts/jobHelpers/session-health-check.sh`
 
 ## Configuration
@@ -661,12 +680,12 @@ This session database is designed to work seamlessly with your microservices:
 # In your microservices
 import redis
 
-# Connect to session database (DB 0)
-session_client = redis.Redis(
+# Connect to auth service database (DB 0)
+auth_client = redis.Redis(
     host='session-database-service.session-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
-    db=0,  # Session database
+    db=0,  # Auth database
     decode_responses=True
 )
 
@@ -679,9 +698,17 @@ cache_client = redis.Redis(
     decode_responses=True
 )
 
-# Session management operations (DB 0)
-session_client.setex(f"session:{session_id}", 3600, session_data)
-session_data = session_client.get(f"session:{session_id}")
+# OAuth2 authentication operations (DB 0)
+# Client registration
+auth_client.hset(f"auth:client:{client_id}", mapping=client_registration)
+
+# Token operations
+auth_client.hset(f"auth:access_token:{token}", mapping=token_metadata)
+auth_client.expire(f"auth:access_token:{token}", 900)  # 15 minutes
+
+# User session management
+auth_client.hset(f"auth:session:{session_id}", mapping=session_data)
+auth_client.expire(f"auth:session:{session_id}", 3600)  # 1 hour
 
 # Service cache operations (DB 1) - Recipe scraper example
 cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
@@ -689,12 +716,13 @@ cache_client.setex(f"cache:resource:popular_recipes", 86400, recipe_data)
 
 ### Key Integration Points
 
-#### Session Management (DB 0)
+#### OAuth2 Authentication (DB 0)
 
-- **Session Storage**: Store session data with TTL
-- **Session Retrieval**: Get session data by ID
-- **Session Cleanup**: Handle expired sessions
-- **User Session Tracking**: Track multiple sessions per user
+- **Client Management**: OAuth2 client registrations and configurations
+- **Authorization Flow**: Authorization codes with short TTL (10 minutes)
+- **Token Management**: Access tokens (15 min), refresh tokens (7 days)
+- **User Sessions**: Authentication session tracking with TTL
+- **Security Features**: Token blacklisting, rate limiting, secure revocation
 
 #### Service Cache (DB 1)
 

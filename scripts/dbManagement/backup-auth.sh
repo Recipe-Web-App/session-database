@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/dbManagement/backup-sessions.sh
+# scripts/dbManagement/backup-auth.sh
 
 set -euo pipefail
 
@@ -21,18 +21,18 @@ DATABASE=${1:-"all"}  # Default to backing up all databases
 
 # Validate database selection
 case "$DATABASE" in
-  "all"|"sessions"|"cache"|"0"|"1")
+  "all"|"auth"|"cache"|"0"|"1")
     # Valid options
     ;;
   *)
     echo "❌ Invalid database option: $DATABASE"
-    echo "   Usage: $0 [all|sessions|cache|0|1]"
+    echo "   Usage: $0 [all|auth|cache|0|1]"
     echo "   Examples:"
     echo "     $0           # Backup all databases (default)"
     echo "     $0 all       # Backup all databases"
-    echo "     $0 sessions  # Backup only session database (DB 0)"
+    echo "     $0 auth      # Backup only auth database (DB 0)"
     echo "     $0 cache     # Backup only cache database (DB 1)"
-    echo "     $0 0         # Backup only session database (DB 0)"
+    echo "     $0 0         # Backup only auth database (DB 0)"
     echo "     $0 1         # Backup only cache database (DB 1)"
     exit 1
     ;;
@@ -98,18 +98,18 @@ print_separator "-"
 mkdir -p "$BACKUP_DIR"
 
 # Determine which databases to backup
-BACKUP_SESSIONS=false
+BACKUP_AUTH=false
 BACKUP_CACHE=false
 
 case "$DATABASE" in
   "all")
-    BACKUP_SESSIONS=true
+    BACKUP_AUTH=true
     BACKUP_CACHE=true
     BACKUP_FILE="$BACKUP_DIR/full_backup_$TIMESTAMP.json"
     ;;
-  "sessions"|"0")
-    BACKUP_SESSIONS=true
-    BACKUP_FILE="$BACKUP_DIR/sessions_backup_$TIMESTAMP.json"
+  "auth"|"0")
+    BACKUP_AUTH=true
+    BACKUP_FILE="$BACKUP_DIR/auth_backup_$TIMESTAMP.json"
     ;;
   "cache"|"1")
     BACKUP_CACHE=true
@@ -119,7 +119,7 @@ esac
 
 print_separator "="
 echo "💾 Starting backup for: $DATABASE"
-[ "$BACKUP_SESSIONS" = true ] && echo "   - Session database (DB 0)"
+[ "$BACKUP_AUTH" = true ] && echo "   - Auth database (DB 0)"
 [ "$BACKUP_CACHE" = true ] && echo "   - Cache database (DB 1)"
 print_separator "-"
 
@@ -128,64 +128,149 @@ echo "{" > "$BACKUP_FILE"
 echo "  \"timestamp\": \"$TIMESTAMP\"," >> "$BACKUP_FILE"
 echo "  \"databases\": {" >> "$BACKUP_FILE"
 
-# Function to backup session database (DB 0)
-backup_sessions() {
-  echo "    \"sessions\": {" >> "$BACKUP_FILE"
+# Function to backup auth database (DB 0)
+backup_auth() {
+  echo "    \"auth\": {" >> "$BACKUP_FILE"
   echo "      \"database\": 0," >> "$BACKUP_FILE"
 
-  # Create Lua script for session backup
+  # Create Lua script for auth backup
   TEMP_SCRIPT=$(mktemp)
   cat > "$TEMP_SCRIPT" << 'EOF'
--- Switch to session database
+-- Switch to auth database
 redis.call("SELECT", 0)
 
-local session_prefix = "session:"
-local user_sessions_prefix = "user_sessions:"
-local session_cleanup_key = "session_cleanup"
-local session_stats_key = "session_stats"
+local client_prefix = "auth:client:"
+local code_prefix = "auth:code:"
+local access_token_prefix = "auth:access_token:"
+local refresh_token_prefix = "auth:refresh_token:"
+local session_prefix = "auth:session:"
+local blacklist_prefix = "auth:blacklist:"
+local rate_limit_prefix = "auth:rate_limit:"
+local auth_stats_key = "auth_stats"
+local auth_config_key = "auth_config"
+local token_cleanup_key = "auth_token_cleanup"
 
 local backup_data = {}
 
--- Get all session keys
-local session_keys = redis.call("KEYS", session_prefix .. "*")
-backup_data.sessions = {}
-for i, key in ipairs(session_keys) do
-    local session_data = redis.call("HGETALL", key)
-    if #session_data > 0 then
-        local session_id = string.sub(key, #session_prefix + 1)
-        backup_data.sessions[session_id] = session_data
+-- Get OAuth2 clients
+local client_keys = redis.call("KEYS", client_prefix .. "*")
+backup_data.clients = {}
+for i, key in ipairs(client_keys) do
+    local client_data = redis.call("HGETALL", key)
+    if #client_data > 0 then
+        local client_id = string.sub(key, #client_prefix + 1)
+        backup_data.clients[client_id] = client_data
     end
 end
 
--- Get user sessions
-local user_session_keys = redis.call("KEYS", user_sessions_prefix .. "*")
-backup_data.user_sessions = {}
-for i, key in ipairs(user_session_keys) do
-    local user_id = string.sub(key, #user_sessions_prefix + 1)
-    local session_ids = redis.call("SMEMBERS", key)
-    backup_data.user_sessions[user_id] = session_ids
+-- Get authorization codes
+local code_keys = redis.call("KEYS", code_prefix .. "*")
+backup_data.authorization_codes = {}
+for i, key in ipairs(code_keys) do
+    local code_data = redis.call("HGETALL", key)
+    local ttl = redis.call("TTL", key)
+    if #code_data > 0 then
+        local code_id = string.sub(key, #code_prefix + 1)
+        backup_data.authorization_codes[code_id] = {
+            data = code_data,
+            ttl = ttl
+        }
+    end
+end
+
+-- Get access tokens
+local access_token_keys = redis.call("KEYS", access_token_prefix .. "*")
+backup_data.access_tokens = {}
+for i, key in ipairs(access_token_keys) do
+    local token_data = redis.call("HGETALL", key)
+    local ttl = redis.call("TTL", key)
+    if #token_data > 0 then
+        local token_id = string.sub(key, #access_token_prefix + 1)
+        backup_data.access_tokens[token_id] = {
+            data = token_data,
+            ttl = ttl
+        }
+    end
+end
+
+-- Get refresh tokens
+local refresh_token_keys = redis.call("KEYS", refresh_token_prefix .. "*")
+backup_data.refresh_tokens = {}
+for i, key in ipairs(refresh_token_keys) do
+    local token_data = redis.call("HGETALL", key)
+    local ttl = redis.call("TTL", key)
+    if #token_data > 0 then
+        local token_id = string.sub(key, #refresh_token_prefix + 1)
+        backup_data.refresh_tokens[token_id] = {
+            data = token_data,
+            ttl = ttl
+        }
+    end
+end
+
+-- Get auth sessions
+local session_keys = redis.call("KEYS", session_prefix .. "*")
+backup_data.auth_sessions = {}
+for i, key in ipairs(session_keys) do
+    local session_data = redis.call("HGETALL", key)
+    local ttl = redis.call("TTL", key)
+    if #session_data > 0 then
+        local session_id = string.sub(key, #session_prefix + 1)
+        backup_data.auth_sessions[session_id] = {
+            data = session_data,
+            ttl = ttl
+        }
+    end
+end
+
+-- Get blacklisted tokens
+local blacklist_keys = redis.call("KEYS", blacklist_prefix .. "*")
+backup_data.blacklisted_tokens = {}
+for i, key in ipairs(blacklist_keys) do
+    local blacklist_data = redis.call("GET", key)
+    local ttl = redis.call("TTL", key)
+    local token_id = string.sub(key, #blacklist_prefix + 1)
+    backup_data.blacklisted_tokens[token_id] = {
+        status = blacklist_data,
+        ttl = ttl
+    }
+end
+
+-- Get rate limit entries
+local rate_limit_keys = redis.call("KEYS", rate_limit_prefix .. "*")
+backup_data.rate_limits = {}
+for i, key in ipairs(rate_limit_keys) do
+    local count = redis.call("GET", key)
+    local ttl = redis.call("TTL", key)
+    local limit_key = string.sub(key, #rate_limit_prefix + 1)
+    backup_data.rate_limits[limit_key] = {
+        count = count,
+        ttl = ttl
+    }
 end
 
 -- Get cleanup data
-backup_data.cleanup_data = redis.call("ZRANGE", session_cleanup_key, 0, -1, "WITHSCORES")
+backup_data.token_cleanup = redis.call("ZRANGE", token_cleanup_key, 0, -1, "WITHSCORES")
 
--- Get statistics
-backup_data.statistics = redis.call("HGETALL", session_stats_key)
+-- Get statistics and configuration
+backup_data.auth_stats = redis.call("HGETALL", auth_stats_key)
+backup_data.auth_config = redis.call("HGETALL", auth_config_key)
+backup_data.rate_limit_config = redis.call("HGETALL", "auth:rate_limit_config")
 
 return cjson.encode(backup_data)
 EOF
 
-  kubectl cp "$TEMP_SCRIPT" "$NAMESPACE/$POD_NAME:/tmp/session_backup.lua"
+  kubectl cp "$TEMP_SCRIPT" "$NAMESPACE/$POD_NAME:/tmp/auth_backup.lua"
 
   if [ -n "$REDIS_PASSWORD" ]; then
-    SESSION_DATA=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
-      redis-cli -a "$REDIS_PASSWORD" --eval /tmp/session_backup.lua 2>/dev/null || echo "{}")
+    AUTH_DATA=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
+      redis-cli -a "$REDIS_PASSWORD" --eval /tmp/auth_backup.lua 2>/dev/null || echo "{}")
   else
-    SESSION_DATA=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
-      redis-cli --eval /tmp/session_backup.lua 2>/dev/null || echo "{}")
+    AUTH_DATA=$(kubectl exec -n "$NAMESPACE" "$POD_NAME" -- \
+      redis-cli --eval /tmp/auth_backup.lua 2>/dev/null || echo "{}")
   fi
 
-  echo "      \"data\": $SESSION_DATA" >> "$BACKUP_FILE"
+  echo "      \"data\": $AUTH_DATA" >> "$BACKUP_FILE"
   echo "    }" >> "$BACKUP_FILE"
 
   rm -f "$TEMP_SCRIPT"
@@ -259,12 +344,12 @@ EOF
 }
 
 # Execute backups based on selection
-if [ "$BACKUP_SESSIONS" = true ] && [ "$BACKUP_CACHE" = true ]; then
-  backup_sessions
+if [ "$BACKUP_AUTH" = true ] && [ "$BACKUP_CACHE" = true ]; then
+  backup_auth
   echo "    ," >> "$BACKUP_FILE"
   backup_cache
-elif [ "$BACKUP_SESSIONS" = true ]; then
-  backup_sessions
+elif [ "$BACKUP_AUTH" = true ]; then
+  backup_auth
 elif [ "$BACKUP_CACHE" = true ]; then
   backup_cache
 fi
@@ -291,13 +376,19 @@ try:
 
     databases = data.get('databases', {})
 
-    if 'sessions' in databases:
-        session_data = databases['sessions'].get('data', {})
-        sessions = session_data.get('sessions', {})
-        user_sessions = session_data.get('user_sessions', {})
-        print(f'  Session database (DB 0):')
-        print(f'    - Sessions: {len(sessions)}')
-        print(f'    - Users: {len(user_sessions)}')
+    if 'auth' in databases:
+        auth_data = databases['auth'].get('data', {})
+        clients = auth_data.get('clients', {})
+        access_tokens = auth_data.get('access_tokens', {})
+        refresh_tokens = auth_data.get('refresh_tokens', {})
+        auth_sessions = auth_data.get('auth_sessions', {})
+        blacklisted = auth_data.get('blacklisted_tokens', {})
+        print(f'  Auth database (DB 0):')
+        print(f'    - OAuth2 clients: {len(clients)}')
+        print(f'    - Access tokens: {len(access_tokens)}')
+        print(f'    - Refresh tokens: {len(refresh_tokens)}')
+        print(f'    - Auth sessions: {len(auth_sessions)}')
+        print(f'    - Blacklisted tokens: {len(blacklisted)}')
 
     if 'cache' in databases:
         cache_data = databases['cache'].get('data', {})

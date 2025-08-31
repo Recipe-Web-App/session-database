@@ -4,9 +4,6 @@
 set -euo pipefail
 
 NAMESPACE="session-database"
-MOUNT_PATH="/mnt/session-database"
-LOCAL_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-MOUNT_CMD="minikube mount ${LOCAL_PATH}:${MOUNT_PATH}"
 IMAGE_NAME="session-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
@@ -43,18 +40,6 @@ kubectl delete -f k8s/templates/configmap-template.yaml -n "$NAMESPACE" --ignore
 kubectl delete -f k8s/redis/standalone/deployment.yaml -n "$NAMESPACE" --ignore-not-found
 kubectl delete -f k8s/templates/secret-template.yaml -n "$NAMESPACE" --ignore-not-found
 kubectl delete -f k8s/redis/standalone/service.yaml -n "$NAMESPACE" --ignore-not-found
-
-print_separator "="
-echo "🔌 Checking for active Minikube mount..."
-print_separator "-"
-
-if pgrep -f "$MOUNT_CMD" > /dev/null; then
-  echo "🛑 Killing Minikube mount process..."
-  pkill -f "$MOUNT_CMD"
-  echo "✅ Minikube mount stopped."
-else
-  echo "ℹ️ No active Minikube mount found."
-fi
 
 print_separator "="
 read -r -p "⚠️ Do you want to delete the PersistentVolumeClaim (PVC)? This will delete all stored session data! (y/N): " del_pvc

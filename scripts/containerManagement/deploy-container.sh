@@ -6,10 +6,6 @@ set -euo pipefail
 NAMESPACE="session-database"
 CONFIG_DIR="k8s"
 SECRET_NAME="session-database-secret" # pragma: allowlist secret
-MOUNT_PATH="/mnt/session-database"
-LOCAL_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-MOUNT_PORT=8787
-MOUNT_CMD="minikube mount ${LOCAL_PATH}:${MOUNT_PATH} --port=${MOUNT_PORT}"
 IMAGE_NAME="session-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
@@ -174,15 +170,6 @@ echo "✅ Lua scripts initialized successfully"
 print_separator "="
 echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
 print_separator "-"
-
-if ! pgrep -f "$MOUNT_CMD" > /dev/null; then
-  echo "🔗 Starting Minikube mount on port ${MOUNT_PORT}..."
-  nohup minikube mount "${LOCAL_PATH}:${MOUNT_PATH}" --port="${MOUNT_PORT}" > /tmp/minikube-mount.log 2>&1 &
-  echo "⏳ Waiting for Minikube mount to be ready..."
-  sleep 5
-else
-  echo "✅ Minikube mount already running on port ${MOUNT_PORT}."
-fi
 
 POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=session-database -o jsonpath="{.items[0].metadata.name}")
 

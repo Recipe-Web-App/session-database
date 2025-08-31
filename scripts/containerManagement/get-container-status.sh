@@ -6,9 +6,6 @@ set -euo pipefail
 NAMESPACE="session-database"
 DEPLOYMENT="session-database"
 SERVICE="session-database"
-MOUNT_PATH="/mnt/session-database"
-LOCAL_PATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-MOUNT_CMD="minikube mount ${LOCAL_PATH}:${MOUNT_PATH}"
 
 # Fixes bug where first separator line does not fill the terminal width
 COLUMNS=$(tput cols 2>/dev/null || echo 80)
@@ -59,14 +56,6 @@ fi
 print_separator "="
 echo "🔍 Checking PVCs in namespace '$NAMESPACE'..."
 kubectl get pvc -n "$NAMESPACE" || echo "❌ No PVCs found."
-
-print_separator "="
-echo "🔍 Checking Minikube mount status..."
-if pgrep -f "$MOUNT_CMD" > /dev/null; then
-  echo "✅ Mount is active: ${LOCAL_PATH} -> ${MOUNT_PATH}"
-else
-  echo "❌ Mount not active."
-fi
 
 print_separator "="
 echo "🔍 Checking kubectl proxy status..."

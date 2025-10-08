@@ -11,7 +11,7 @@ updates:
       timezone: "US/Eastern"
     open-pull-requests-limit: 100
     assignees:
-      - "jsamuelsen"
+      - "jsamuelsen11"
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
@@ -45,7 +45,7 @@ updates:
       timezone: "US/Eastern"
     open-pull-requests-limit: 100
     assignees:
-      - "jsamuelsen"
+      - "jsamuelsen11"
     commit-message:
       prefix: "docker"
       include: "scope"
@@ -64,7 +64,7 @@ updates:
       timezone: "US/Eastern"
     open-pull-requests-limit: 100
     assignees:
-      - "jsamuelsen"
+      - "jsamuelsen11"
     commit-message:
       prefix: "ci"
       include: "scope"

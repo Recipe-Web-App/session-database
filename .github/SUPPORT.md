@@ -8,10 +8,10 @@ right resources for getting help.
 Comprehensive documentation is available:
 
 - **[README.md](../README.md)** - Project overview, features, and quick start
-- **[DEPLOYMENT.md](../DEPLOYMENT.md)** - Deployment guides and configuration
+- **[DEPLOYMENT.md](../docs/DEPLOYMENT.md)** - Deployment guides and configuration
 - **[CLAUDE.md](../CLAUDE.md)** - Development guide and architecture
   details
-- **[CONTAINERMAGAGEMENT.md](../CONTAINERMAGAGEMENT.md)** - Container
+- **[CONTAINERMAGAGEMENT.md](../docs/CONTAINERMAGAGEMENT.md)** - Container
   management scripts documentation
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributing guidelines
 - **[SECURITY.md](SECURITY.md)** - Security policy and best practices
@@ -92,7 +92,7 @@ See [SECURITY.md](SECURITY.md) for details.
 
 **Q: How do I deploy Session Database?**
 
-A: See [DEPLOYMENT.md](../DEPLOYMENT.md) for deployment guides. Quick start:
+A: See [DEPLOYMENT.md](../docs/DEPLOYMENT.md) for deployment guides. Quick start:
 
 ```bash
 # Using Helm (recommended)

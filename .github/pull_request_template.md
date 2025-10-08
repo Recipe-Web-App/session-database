@@ -98,8 +98,8 @@ Related to #(issue number)
 
 - [ ] README.md updated
 - [ ] CLAUDE.md updated
-- [ ] DEPLOYMENT.md updated
-- [ ] CONTAINERMAGAGEMENT.md updated
+- [ ] docs/DEPLOYMENT.md updated
+- [ ] docs/CONTAINERMAGAGEMENT.md updated
 - [ ] Code comments added/updated
 - [ ] Architecture documentation updated
 - [ ] Helm chart documentation updated

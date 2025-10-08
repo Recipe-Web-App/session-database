@@ -30,8 +30,8 @@ body:
       options:
         - README.md
         - CLAUDE.md
-        - DEPLOYMENT.md
-        - CONTAINERMAGAGEMENT.md
+        - docs/DEPLOYMENT.md
+        - docs/CONTAINERMAGAGEMENT.md
         - SECURITY.md
         - CONTRIBUTING.md
         - Code Comments

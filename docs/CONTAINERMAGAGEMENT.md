@@ -35,11 +35,12 @@ These scripts manage the core Redis high-availability cluster:
 
 These scripts manage auxiliary services that support the core application:
 
-- **`deploy-supporting-services.sh`** - Deploy monitoring, alerting, and security
-- **`start-supporting-services.sh`** - Start supporting services
-- **`stop-supporting-services.sh`** - Stop supporting services
-- **`cleanup-supporting-services.sh`** - Clean up supporting services
-- **`get-supporting-services-status.sh`** - Check supporting services status
+- **`deploy-monitoring.sh`** - Deploy monitoring, alerting, and security
+- **`cleanup-monitoring.sh`** - Clean up monitoring and security components
+
+**Note**: Start/stop operations for monitoring services are not currently
+implemented as separate scripts. Use `kubectl scale` commands directly or
+redeploy as needed.
 
 #### Supporting Components Managed
 
@@ -117,18 +118,19 @@ print_separator "="
 ./scripts/containerManagement/deploy-container.sh
 
 # 2. Deploy monitoring and security
-./scripts/containerManagement/deploy-supporting-services.sh
+./scripts/containerManagement/deploy-monitoring.sh
 
 # 3. Verify deployment
 ./scripts/containerManagement/get-container-status.sh
-./scripts/containerManagement/get-supporting-services-status.sh
+
+# Check monitoring services manually
+kubectl get pods,svc -n session-database -l component=monitoring
 ```
 
 ### Maintenance Operations
 
 ```bash
 # Stop services for maintenance
-./scripts/containerManagement/stop-supporting-services.sh
 ./scripts/containerManagement/stop-container.sh
 
 # Perform maintenance tasks
@@ -136,14 +138,16 @@ print_separator "="
 
 # Restart services
 ./scripts/containerManagement/start-container.sh
-./scripts/containerManagement/start-supporting-services.sh
+
+# Note: Monitoring services don't have dedicated start/stop scripts
+# Redeploy if needed: ./scripts/containerManagement/deploy-monitoring.sh
 ```
 
 ### Clean Removal
 
 ```bash
-# Remove supporting services first (proper dependency order)
-./scripts/containerManagement/cleanup-supporting-services.sh
+# Remove monitoring services first (proper dependency order)
+./scripts/containerManagement/cleanup-monitoring.sh
 
 # Remove core Redis cluster
 ./scripts/containerManagement/cleanup-container.sh
@@ -153,20 +157,21 @@ print_separator "="
 
 ### Deployment Order (Critical)
 
-1. **Core First**: `deploy-container.sh` must run before supporting services
-2. **Supporting Second**: `deploy-supporting-services.sh` depends on Redis
-   cluster existing
+1. **Core First**: `deploy-container.sh` must run before monitoring services
+2. **Monitoring Second**: `deploy-monitoring.sh` depends on Redis cluster existing
 3. **Verification Last**: Status checks can run independently after deployment
 
 ### Cleanup Order (Critical)
 
-1. **Supporting First**: `cleanup-supporting-services.sh` removes monitoring of Redis
+1. **Monitoring First**: `cleanup-monitoring.sh` removes monitoring of Redis
 2. **Core Last**: `cleanup-container.sh` removes the Redis cluster being monitored
 
 ### Start/Stop Order
 
-- **Start**: Core containers first, then supporting services
-- **Stop**: Supporting services first, then core containers
+- **Start**: Core containers first, then monitoring services (if using
+  separate deployments)
+- **Stop**: Core containers can be stopped independently; monitoring services
+  typically remain running
 
 ## Environment Variable Handling
 
@@ -267,10 +272,11 @@ These scripts are designed for easy migration to a centralized SystemManagement 
 ```bash
 # Quick development setup
 ./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-supporting-services.sh
+./scripts/containerManagement/deploy-monitoring.sh
 
 # Check everything is working
 ./scripts/containerManagement/get-container-status.sh
+kubectl get pods,svc -n session-database
 ```
 
 ### Production Deployment
@@ -282,11 +288,11 @@ cp .env.example .env
 
 # Deploy with validation
 ./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-supporting-services.sh
+./scripts/containerManagement/deploy-monitoring.sh
 
 # Verify deployment
 ./scripts/containerManagement/get-container-status.sh
-./scripts/containerManagement/get-supporting-services-status.sh
+kubectl get pods,svc -n session-database -l component=monitoring
 ```
 
 ### Troubleshooting
@@ -294,7 +300,9 @@ cp .env.example .env
 ```bash
 # Check status of all components
 ./scripts/containerManagement/get-container-status.sh
-./scripts/containerManagement/get-supporting-services-status.sh
+
+# Check monitoring services
+kubectl get pods,svc -n session-database -l component=monitoring
 
 # Common troubleshooting
 kubectl get pods -n session-database

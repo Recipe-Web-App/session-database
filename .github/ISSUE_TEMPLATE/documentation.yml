@@ -1,0 +1,94 @@
+---
+name: Documentation Issue
+description: Report documentation problems or suggest improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees:
+  - jsamuelsen
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation issue is this?
+      options:
+        - Missing Documentation
+        - Incorrect/Outdated Information
+        - Unclear/Confusing
+        - Typo/Grammar
+        - Code Example Issue
+        - Broken Link
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Where is the documentation issue?
+      options:
+        - README.md
+        - CLAUDE.md
+        - DEPLOYMENT.md
+        - CONTAINERMAGAGEMENT.md
+        - SECURITY.md
+        - CONTRIBUTING.md
+        - Code Comments
+        - Helm Chart Documentation
+        - Script Comments
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue Description
+      description: What's wrong or missing?
+      placeholder: Describe the documentation issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: location_specific
+    attributes:
+      label: Specific Location
+      description: Exact location of the issue
+      placeholder: |
+        File: path/to/file.md
+        Line: 42
+        Section: "Deployment Guide"
+        URL: https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Documentation
+      description: Quote the current documentation (if applicable)
+      placeholder: Quote the problematic text here
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested Improvement
+      description: How should it be fixed or what should be added?
+      placeholder: Suggested documentation fix or addition
+    validations:
+      required: true
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Target Audience
+      description: Who is this documentation for?
+      options:
+        - End Users
+        - Developers/Contributors
+        - DevOps/Platform Engineers
+        - Security Team
+        - All Users
+    validations:
+      required: true

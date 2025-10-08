@@ -1,0 +1,112 @@
+---
+name: Performance Issue
+description: Report performance degradation or optimization opportunities
+title: "[Performance]: "
+labels: ["performance", "needs-triage"]
+assignees:
+  - jsamuelsen
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem
+      placeholder: What performance issue are you experiencing?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which component has the performance issue?
+      options:
+        - Redis Master
+        - Redis Replica
+        - Sentinel
+        - Session Operations
+        - Monitoring/Metrics
+        - Kubernetes Scheduling
+        - Network Performance
+        - Storage/Persistence
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Impact Severity
+      description: How severe is the performance impact?
+      options:
+        - Critical (Service unusable/timeout)
+        - High (Significant degradation)
+        - Medium (Noticeable impact)
+        - Low (Minor optimization opportunity)
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Performance Metrics
+      description: Provide actual performance numbers
+      placeholder: |
+        Current performance:
+        - Latency: X ms
+        - Throughput: Y ops/sec
+        - Memory usage: Z MB
+        - CPU usage: N%
+
+        Expected performance:
+        - Latency: < X ms
+        - Throughput: > Y ops/sec
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How to reproduce the performance issue
+      placeholder: |
+        1. Deploy configuration '...'
+        2. Run load test '...'
+        3. Observe metric '...'
+
+  - type: textarea
+    id: load
+    attributes:
+      label: Load Characteristics
+      description: What load conditions trigger this?
+      placeholder: |
+        - Request rate:
+        - Concurrent connections:
+        - Data volume:
+        - Duration:
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Environment configuration
+      value: |
+        - Kubernetes version:
+        - Redis version:
+        - Deployment mode: (Standalone/HA)
+        - Resource limits:
+        - Storage type:
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Relevant configuration settings
+      placeholder: Redis config, Sentinel config, resource limits, etc.
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: Profiling Data
+      description: Include profiling output if available
+      placeholder: Redis SLOWLOG, Kubernetes metrics, etc.

@@ -1,0 +1,36 @@
+---
+labels: [question]
+
+body:
+  - type: textarea
+    attributes:
+      label: Question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Topic Area
+      options:
+        - Redis Configuration
+        - Sentinel HA Setup
+        - Kubernetes Deployment
+        - Helm Charts
+        - Monitoring/Alerting
+        - Security
+        - Performance
+        - Troubleshooting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Context
+      description: Provide any relevant context or what you've tried
+
+  - type: textarea
+    attributes:
+      label: Relevant Configuration
+      description: Share relevant configuration (redact secrets!)

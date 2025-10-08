@@ -1,0 +1,117 @@
+---
+name: Task
+description: Track development tasks and planned work
+title: "[Task]: "
+labels: ["task"]
+assignees:
+  - jsamuelsen
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Task Description
+      description: Describe the task to be completed
+      placeholder: What needs to be done?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Task Type
+      description: What type of task is this?
+      options:
+        - Implementation
+        - Refactoring
+        - Technical Debt
+        - Infrastructure Update
+        - Security Enhancement
+        - Performance Optimization
+        - Documentation
+        - Testing
+        - Maintenance
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component Area
+      description: Which component does this affect?
+      options:
+        - Redis Configuration
+        - Sentinel Setup
+        - Kubernetes Manifests
+        - Helm Chart
+        - Monitoring/Alerting
+        - Scripts/Automation
+        - CI/CD
+        - Documentation
+        - Security
+        - Testing
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this task?
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this task is complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: testing
+    attributes:
+      label: Testing Requirements
+      description: How should this be tested?
+      placeholder: |
+        - Unit tests required
+        - Integration tests required
+        - Manual testing steps
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Notes
+      description: Technical details or approach notes
+      placeholder: Any technical details, dependencies, or approach considerations
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues/PRs
+      description: Link to related work
+      placeholder: |
+        Depends on: #123
+        Related to: #456
+        Blocks: #789
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: Rough effort estimate
+      options:
+        - Small (< 4 hours)
+        - Medium (1-2 days)
+        - Large (3-5 days)
+        - X-Large (1+ weeks)

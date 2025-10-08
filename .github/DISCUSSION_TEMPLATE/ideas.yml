@@ -1,0 +1,27 @@
+---
+labels: [idea]
+
+body:
+  - type: textarea
+    attributes:
+      label: Idea Description
+      description: Share your idea for a new feature or improvement
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Problem or Use Case
+      description: What problem does this solve or what use case does it enable?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Proposed Solution
+      description: How would you implement this idea?
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or examples

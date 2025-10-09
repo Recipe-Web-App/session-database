@@ -1,0 +1,140 @@
+---
+# Labeler configuration for automatically labeling PRs based on changed files
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'requirements.txt'
+          - '.pre-commit-config.yaml'
+          - 'package.json'
+          - 'package-lock.json'
+
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+          - '.github/*.md'
+          - 'CLAUDE.md'
+          - 'README.md'
+          - 'CONTRIBUTING.md'
+          - 'SECURITY.md'
+
+# GitHub configuration
+github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+
+# Workflows
+workflows:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+
+# Docker
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - 'docker-compose*.yml'
+          - '.dockerignore'
+
+# Kubernetes
+kubernetes:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'k8s/**/*'
+          - 'k8s/*.yaml'
+          - 'k8s/*.yml'
+
+# Helm
+helm:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'helm/**/*'
+
+# Redis configuration
+redis:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'redis/**/*'
+          - 'config/redis*'
+          - '**/redis*.conf'
+
+# Scripts
+scripts:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'scripts/**/*'
+          - '**/*.sh'
+
+# Python
+python:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.py'
+          - 'requirements.txt'
+          - 'setup.py'
+          - 'pyproject.toml'
+
+# YAML/Configuration
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.yaml'
+          - '**/*.yml'
+          - '**/*.conf'
+
+# Monitoring
+monitoring:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'k8s/prometheus/**/*'
+          - 'k8s/grafana/**/*'
+          - 'k8s/alertmanager/**/*'
+          - '**/prometheus*.yaml'
+          - '**/grafana*.yaml'
+
+# Security
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/security.yml'
+          - '.github/workflows/codeql.yml'
+          - 'k8s/**/network-policy*.yaml'
+          - '**/pod-security*.yaml'
+          - 'SECURITY.md'
+
+# CI/CD
+ci-cd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+          - '.gitlab-ci.yml'
+
+# Deployment
+deployment:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'k8s/redis/**/*'
+          - '.github/workflows/deploy.yml'
+          - 'helm/**/values*.yaml'
+
+# Database
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'k8s/redis/**/*'
+          - 'scripts/dbManagement/**/*'
+          - 'redis/**/*'
+
+# Testing
+testing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**/*'
+          - '**/*_test.*'
+          - '**/*.test.*'

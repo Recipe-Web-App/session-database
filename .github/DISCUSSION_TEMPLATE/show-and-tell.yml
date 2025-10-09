@@ -1,0 +1,32 @@
+---
+labels: [show-and-tell]
+
+body:
+  - type: textarea
+    attributes:
+      label: What Did You Build?
+      description: Tell us about your implementation or integration
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: How Are You Using Session Database?
+      description: Share your use case and deployment
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Interesting Challenges or Solutions
+      description: What interesting problems did you solve?
+
+  - type: textarea
+    attributes:
+      label: Screenshots or Demo
+      description: Share screenshots, architecture diagrams, or demo links
+
+  - type: textarea
+    attributes:
+      label: Feedback for the Project
+      description: Any suggestions or feedback based on your experience?

@@ -156,10 +156,10 @@ For development environments and legacy compatibility using containerManagement 
 
 ```bash
 # Deploy monitoring, alerting, and security components
-./scripts/containerManagement/deploy-supporting-services.sh
+./scripts/containerManagement/deploy-monitoring.sh
 
-# Check supporting services status
-./scripts/containerManagement/get-supporting-services-status.sh
+# Check monitoring services status
+kubectl get pods,svc -n session-database -l component=monitoring
 ```
 
 #### Complete Script-based Workflow
@@ -167,18 +167,18 @@ For development environments and legacy compatibility using containerManagement 
 ```bash
 # Full deployment
 ./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-supporting-services.sh
+./scripts/containerManagement/deploy-monitoring.sh
 
 # Verify deployment
 ./scripts/containerManagement/get-container-status.sh
-./scripts/containerManagement/get-supporting-services-status.sh
+kubectl get pods,svc -n session-database -l component=monitoring
 
 # Maintenance operations
 ./scripts/containerManagement/stop-container.sh      # Stop for maintenance
 ./scripts/containerManagement/start-container.sh     # Resume operations
 
-# Clean removal (supporting services first, then core)
-./scripts/containerManagement/cleanup-supporting-services.sh
+# Clean removal (monitoring first, then core)
+./scripts/containerManagement/cleanup-monitoring.sh
 ./scripts/containerManagement/cleanup-container.sh
 ```
 

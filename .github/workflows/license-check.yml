@@ -1,0 +1,103 @@
+---
+name: License Check
+
+'on':
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'requirements.txt'
+      - '.pre-commit-config.yaml'
+  schedule:
+    - cron: '0 6 1 * *'  # Monthly on the 1st at 6 AM UTC
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  license-check:
+    name: Check Dependency Licenses
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-licenses
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Check licenses
+        id: check
+        run: |
+          # Generate license report
+          pip-licenses --format=markdown --output-file=license-report.md || true
+          pip-licenses --format=csv --output-file=licenses.csv || true
+
+          # Check for restricted licenses
+          RESTRICTED_LICENSES="GPL-3.0 AGPL-3.0 LGPL-3.0"
+          VIOLATIONS=""
+
+          for license in $RESTRICTED_LICENSES; do
+            if pip-licenses | grep -i "$license"; then
+              VIOLATIONS="${VIOLATIONS}${license} "
+            fi
+          done
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+            echo "status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: |
+            license-report.md
+            licenses.csv
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: licenses
+          message: |
+            ## 📜 License Compliance Check
+
+            **Status:** ${{ steps.check.outputs.status == 'passed' && '✅ Passed' || '❌ Failed' }}
+
+            ${{ steps.check.outputs.violations && format('**⚠️ Restricted licenses found:** {0}', steps.check.outputs.violations) || '✅ No restricted licenses found' }}
+
+            **Blocked licenses:** GPL-3.0, AGPL-3.0, LGPL-3.0
+
+            <details>
+            <summary>View license report</summary>
+
+            $(cat license-report.md)
+
+            </details>
+
+      - name: Fail if violations found
+        if: steps.check.outputs.status == 'failed'
+        run: |
+          echo "❌ Restricted licenses found: ${{ steps.check.outputs.violations }}"
+          exit 1

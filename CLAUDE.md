@@ -186,7 +186,7 @@ kubectl apply -f k8s/argocd/applicationset.yaml
 ```
 
 **Note**: These scripts follow consistent patterns across the distributed
-system. See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for detailed script
+system. See [CONTAINERMAGAGEMENT.md](docs/CONTAINERMAGAGEMENT.md) for detailed script
 documentation and SystemManagement project compatibility.
 
 ### Database Operations
@@ -528,8 +528,9 @@ kubectl port-forward svc/alertmanager-service 9093:9093
 
 # Script-based status checking
 ./scripts/containerManagement/get-container-status.sh           # Redis cluster health
-# Monitoring/security status
-./scripts/containerManagement/get-supporting-services-status.sh
+
+# Check monitoring services manually
+kubectl get pods,svc -n session-database -l component=monitoring
 ```
 
 ## Container Management Scripts
@@ -555,14 +556,13 @@ distributed system, use the containerManagement scripts:
 
 # Status monitoring
 ./scripts/containerManagement/get-container-status.sh
-./scripts/containerManagement/get-supporting-services-status.sh
 
 # Clean removal (proper order)
-./scripts/containerManagement/cleanup-supporting-services.sh
+./scripts/containerManagement/cleanup-monitoring.sh
 ./scripts/containerManagement/cleanup-container.sh
 ```
 
-See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for comprehensive script
+See [CONTAINERMAGAGEMENT.md](docs/CONTAINERMAGAGEMENT.md) for comprehensive script
 documentation, style patterns, and SystemManagement project compatibility.
 
 This modernized deployment provides enterprise-grade session storage suitable

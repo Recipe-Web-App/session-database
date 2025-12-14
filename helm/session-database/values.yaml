@@ -289,12 +289,22 @@ service:
   type: ClusterIP
   port: 6379
   targetPort: 6379
+  annotations: {}
+
+  # NodePort configuration (for local development)
+  nodePort:
+    enabled: false
+    port: 30379
 
   # Sentinel service
   sentinel:
     type: ClusterIP
     port: 26379
     targetPort: 26379
+    annotations: {}
+    nodePort:
+      enabled: false
+      port: 30380
 
 # Ingress configuration (for monitoring)
 ingress:

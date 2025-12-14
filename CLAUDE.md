@@ -36,6 +36,28 @@ setup to a fully-featured, production-ready OAuth2 service deployment.
 2. **Sentinel**: Redis Sentinel HA setup (recommended for production)
 3. **Cluster**: Redis Cluster mode (future enhancement)
 
+### External Access (NodePort)
+
+For local Kubernetes clusters (minikube, k3s, kind, microk8s), NodePort services
+provide external access to Redis:
+
+```bash
+# Script-based deployment (auto-configures /etc/hosts)
+./scripts/containerManagement/deploy-container.sh
+
+# Access via hostname (uses REDIS_NODEPORT from .env)
+redis-cli -h session-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+
+# Or via minikube IP
+redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+```
+
+NodePort defaults (configurable via `.env`):
+
+- `REDIS_NODEPORT=30379` - Redis master
+- `SENTINEL_NODEPORT=30380` - Sentinel
+- `REPLICA_NODEPORT=30381` - Redis replicas
+
 ## Key Components
 
 ### Deployment Architecture

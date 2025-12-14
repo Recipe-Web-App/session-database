@@ -62,8 +62,8 @@ if ! minikube status >/dev/null 2>&1; then
   if ! minikube addons list | grep -q 'ingress *enabled'; then
     echo "🔌 Enabling Minikube ingress addon..."
     minikube addons enable ingress
-    echo "✅ Minikube started."
   fi
+  echo "✅ Minikube started."
 else
   echo "✅ Minikube is already running."
 fi
@@ -136,10 +136,10 @@ print_separator "-"
 kubectl apply -f "${CONFIG_DIR}/redis/standalone/deployment.yaml"
 
 print_separator "="
-echo "🌐 Exposing Redis via ClusterIP Service..."
+echo "🌐 Exposing Redis via NodePort Service..."
 print_separator "-"
 
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/service.yaml"
+envsubst < "${CONFIG_DIR}/redis/standalone/service-template.yaml" | kubectl apply -f -
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
@@ -168,15 +168,39 @@ fi
 echo "✅ Lua scripts initialized successfully"
 
 print_separator "="
-echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
+echo "🌐 Configuring external access..."
 print_separator "-"
 
 POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=session-database -o jsonpath="{.items[0].metadata.name}")
 
+MINIKUBE_IP=$(minikube ip)
+NODE_PORT=$(kubectl get svc session-database-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
+
+if [ -n "$MINIKUBE_IP" ]; then
+  echo "✅ Minikube IP: ${MINIKUBE_IP}"
+  echo "✅ NodePort: ${NODE_PORT}"
+  LOCAL_HOSTNAME="session-database.local"
+  sed -i "/${LOCAL_HOSTNAME}/d" /etc/hosts
+  echo "${MINIKUBE_IP} ${LOCAL_HOSTNAME}" >> /etc/hosts
+  echo "✅ Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
+else
+  echo "⚠️ Could not determine Minikube IP"
+fi
+
 print_separator "="
+echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
+print_separator "-"
 echo "📡 Access info:"
 echo "  Pod: $POD_NAME"
-echo "  Host: session-database.$NAMESPACE.svc.cluster.local"
-echo "  Port: 6379"
+echo "  Internal Host: session-database-service.$NAMESPACE.svc.cluster.local"
+if [ -n "$MINIKUBE_IP" ]; then
+  echo "  Minikube IP: $MINIKUBE_IP"
+  echo "  NodePort: $NODE_PORT"
+  echo "  Hostname: session-database.local"
+  echo "  External Access: redis-cli -h session-database.local -p $NODE_PORT -a \$REDIS_PASSWORD"
+else
+  echo "  External Access: (run 'minikube ip' and 'kubectl get svc -n $NAMESPACE' to check)"
+fi
+echo "  Internal Port: 6379"
 echo "  Database: Redis"
 print_separator "="

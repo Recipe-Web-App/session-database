@@ -33,13 +33,21 @@ else
 fi
 
 print_separator "="
+echo "🧹 Removing hostname from /etc/hosts..."
+print_separator "-"
+
+HOSTNAME="session-database.local"
+sed -i "/${HOSTNAME}/d" /etc/hosts
+echo "✅ Removed ${HOSTNAME} from /etc/hosts"
+
+print_separator "="
 echo "🧹 Deleting Kubernetes resources in namespace '$NAMESPACE'..."
 print_separator "-"
 
-kubectl delete -f k8s/templates/configmap-template.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete configmap session-database-config -n "$NAMESPACE" --ignore-not-found
 kubectl delete -f k8s/redis/standalone/deployment.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete -f k8s/templates/secret-template.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete -f k8s/redis/standalone/service.yaml -n "$NAMESPACE" --ignore-not-found
+kubectl delete secret session-database-secret -n "$NAMESPACE" --ignore-not-found
+kubectl delete service session-database-service -n "$NAMESPACE" --ignore-not-found
 
 print_separator "="
 read -r -p "⚠️ Do you want to delete the PersistentVolumeClaim (PVC)? This will delete all stored session data! (y/N): " del_pvc

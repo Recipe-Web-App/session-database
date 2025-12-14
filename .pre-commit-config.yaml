@@ -93,7 +93,7 @@ repos:
     hooks:
       - id: kube-score
         name: kube-score
-        entry: sh -c 'find k8s -name "*.yaml" -type f -not -path "*/templates/*" | xargs kube-score score'
+        entry: sh -c 'find k8s -name "*.yaml" -type f -not -path "*/templates/*" -not -name "*-template.yaml" | xargs kube-score score'
         language: system
         files: k8s/.*\.yaml$
         pass_filenames: false

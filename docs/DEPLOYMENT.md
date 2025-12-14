@@ -80,6 +80,11 @@ CACHE_MAX_ENTRIES_PER_SERVICE=10000
 NAMESPACE=session-database
 POD_LABEL=app=session-database
 
+# NodePort Configuration (for external access via minikube)
+REDIS_NODEPORT=30379
+SENTINEL_NODEPORT=30380
+REPLICA_NODEPORT=30381
+
 # Logging
 LOG_LEVEL=INFO
 ```
@@ -222,6 +227,52 @@ kubectl apply -f k8s/alertmanager/
 kubectl apply -f k8s/shared/ingress.yaml
 kubectl apply -f k8s/shared/tls-certificates.yaml
 ```
+
+### Option 5: Local Development with NodePort
+
+For local Kubernetes clusters (minikube, k3s, kind, microk8s), use NodePort
+services to enable external Redis access:
+
+#### Script-Based (Minikube)
+
+The deployment script automatically configures external access via NodePort:
+
+```bash
+# Deploy (script handles NodePort setup and /etc/hosts)
+./scripts/containerManagement/deploy-container.sh
+
+# Access Redis via hostname (configured in /etc/hosts)
+redis-cli -h session-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+
+# Or via minikube IP directly
+redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+```
+
+#### Helm-Based
+
+```bash
+# Deploy with local values (NodePort enabled)
+helm install session-database ./helm/session-database \
+  --namespace session-database --create-namespace \
+  --values ./helm/session-database/values-local.yaml \
+  --set redis.auth.password=your-redis-password
+
+# Check NodePort assignment
+kubectl get svc -n session-database
+
+# Access Redis externally
+redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a your-redis-password
+```
+
+#### NodePort Configuration
+
+NodePorts are configurable via `.env` file:
+
+| Variable            | Default | Service  |
+| ------------------- | ------- | -------- |
+| `REDIS_NODEPORT`    | 30379   | Redis    |
+| `SENTINEL_NODEPORT` | 30380   | Sentinel |
+| `REPLICA_NODEPORT`  | 30381   | Replica  |
 
 ## Configuration
 

@@ -15,5 +15,6 @@ spec:
     - protocol: TCP
       port: 26379
       targetPort: 26379
+      nodePort: ${SENTINEL_NODEPORT}
       name: sentinel
-  type: ClusterIP
+  type: NodePort

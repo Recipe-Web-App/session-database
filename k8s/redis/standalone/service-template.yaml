@@ -4,6 +4,8 @@ kind: Service
 metadata:
   name: session-database-service
   namespace: session-database
+  labels:
+    app: session-database
 spec:
   selector:
     app: session-database
@@ -11,4 +13,6 @@ spec:
     - protocol: TCP
       port: 6379
       targetPort: 6379
-  type: ClusterIP
+      nodePort: ${REDIS_NODEPORT}
+      name: redis
+  type: NodePort

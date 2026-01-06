@@ -11,12 +11,11 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ### Prerequisites
 
-- Python 3.11+
-- Docker and Docker Compose
 - Kubernetes cluster (Minikube or Kind for local development)
 - kubectl
 - Helm 3+
-- Pre-commit hooks
+- Docker (for building custom Redis images)
+- Pre-commit hooks (`pip install pre-commit`)
 
 ### Development Setup
 
@@ -64,9 +63,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ### Branch Strategy
 
-- `main` - Production-ready code
-- `develop` - Integration branch for features
-- `feature/*` - New features
+- `main` - Production-ready code (primary branch)
+- `feature/*` - New features (branch from `main`)
 - `fix/*` - Bug fixes
 - `docs/*` - Documentation updates
 - `chore/*` - Maintenance tasks

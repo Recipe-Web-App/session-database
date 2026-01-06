@@ -62,6 +62,27 @@ Related to #(issue number)
 
 **Describe manual testing:**
 
+### OAuth2 Authentication Testing
+
+_Complete this section if changes affect auth service (DB 0) functionality._
+
+- [ ] Authorization code flow tested (code generation, exchange, expiration)
+- [ ] Access token lifecycle verified (creation, validation, expiration at 15 min)
+- [ ] Refresh token rotation tested (creation, refresh, expiration at 7 days)
+- [ ] Token revocation/blacklisting works correctly
+- [ ] Client registration and management verified
+- [ ] User session management tested (creation, lookup, expiration at 1 hour)
+- [ ] Rate limiting functions correctly
+- [ ] Token cleanup CronJob executes successfully
+
+### Cache Service Testing
+
+_Complete this section if changes affect service cache (DB 1) functionality._
+
+- [ ] Cache read/write operations verified
+- [ ] TTL-based expiration works (default 24h)
+- [ ] Cache key patterns follow `cache:resource:{name}` format
+
 ## Configuration Changes
 
 - [ ] New environment variables added

@@ -10,23 +10,32 @@ The containerManagement scripts provide a consistent interface for deploying,
 managing, and monitoring containerized services. They follow established
 patterns that ensure compatibility across the entire distributed system.
 
+> **Important**: These scripts are designed for **Minikube** local development
+> environments. For other Kubernetes distributions (Kind, k3s, microk8s, cloud
+> providers), use **Helm deployment** instead:
+> `helm install session-database ./helm/session-database`
+
 ## Script Categories
 
-### Core Container Scripts (Redis Cluster)
+### Core Container Scripts (Standalone Redis)
 
-These scripts manage the core Redis high-availability cluster:
+These scripts deploy a **standalone Redis instance** for development:
 
-- **`deploy-container.sh`** - Deploy Redis HA cluster with Sentinel
-- **`start-container.sh`** - Start Redis cluster components
-- **`stop-container.sh`** - Stop Redis cluster components
-- **`cleanup-container.sh`** - Clean up Redis cluster with data preservation
-- **`get-container-status.sh`** - Check Redis cluster health and status
+- **`deploy-container.sh`** - Deploy standalone Redis instance (uses `k8s/redis/standalone/`)
+- **`start-container.sh`** - Start Redis deployment
+- **`stop-container.sh`** - Stop Redis deployment (scale to 0)
+- **`cleanup-container.sh`** - Clean up Redis with data preservation options
+- **`get-container-status.sh`** - Check Redis health and status
 
-#### Core Components Managed
+> **Note**: For High Availability (HA) deployment with Redis Sentinel
+> (master + replicas + sentinel), use **Helm with production values**:
+> `helm install session-database ./helm/session-database --values ./helm/session-database/values-production.yaml`
+>
+> The HA manifests are available at `k8s/redis/ha/` for manual deployment.
 
-- Redis Master (primary instance with persistent storage)
-- Redis Replicas (2-3 read replicas for scaling and failover)
-- Redis Sentinel (3-node cluster for automatic failover)
+#### Components Managed by Scripts
+
+- Standalone Redis instance (single node with persistent storage)
 - Token Cleanup CronJob (automated expired OAuth2 token removal)
 - Core RBAC and service accounts
 - Persistent volumes and storage
@@ -114,7 +123,7 @@ print_separator "="
 ### Full Deployment Workflow
 
 ```bash
-# 1. Deploy core Redis HA cluster
+# 1. Deploy standalone Redis instance
 ./scripts/containerManagement/deploy-container.sh
 
 # 2. Deploy monitoring and security
@@ -206,13 +215,14 @@ fi
 
 ## Status and Health Checking
 
-### Core Status Checks
+### Core Status Checks (Standalone Mode)
 
-- Redis Master availability and role
-- Redis Replica count and replication lag
-- Sentinel cluster quorum and master discovery
+- Redis instance availability
 - Session cleanup job execution history
 - Persistent volume availability and usage
+
+> **Note**: For HA deployments (via Helm), additional checks apply:
+> Redis replica count, replication lag, and Sentinel quorum status.
 
 ### Supporting Services Status Checks
 

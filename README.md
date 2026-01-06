@@ -242,6 +242,7 @@ session-database/
 │   └── session-database/           # Main Helm chart
 │       ├── Chart.yaml              # Chart metadata
 │       ├── values.yaml             # Default configuration
+│       ├── values-local.yaml       # Local development overrides
 │       ├── values-production.yaml  # Production overrides
 │       └── templates/              # Kubernetes templates
 ├── k8s/                           # Kubernetes manifests (organized by application)
@@ -594,19 +595,19 @@ The deployment script automatically updates `/etc/hosts` for easy access.
 
 #### Monitoring Components
 
-**Prometheus Configuration** (`k8s/monitoring/prometheus.yaml`):
+**Prometheus Configuration** (`k8s/prometheus/`):
 
 - Scrapes Redis metrics via redis-exporter
 - Stores metrics with 200h retention
 - Configurable scrape intervals
 
-**Grafana Dashboards** (`k8s/monitoring/grafana-dashboards-config.yaml`):
+**Grafana Dashboards** (`k8s/grafana/grafana-dashboards-config.yaml`):
 
 - Redis monitoring dashboard
 - Memory usage, connected clients
 - Commands per second, keyspace hits
 
-**Redis Exporter** (`k8s/monitoring/redis-exporter.yaml`):
+**Redis Exporter** (`k8s/prometheus/redis-exporter/`):
 
 - Exposes Redis metrics to Prometheus
 - Authenticated connection to Redis

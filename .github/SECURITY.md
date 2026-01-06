@@ -221,6 +221,94 @@ Instead, report through
 - Quorum configuration prevents split-brain
 - Automatic failover maintains security posture
 
+## OAuth2 Authentication Security
+
+This service stores OAuth2 tokens and authentication data. The following
+security considerations are critical for OAuth2 implementations.
+
+### Token Security
+
+#### Access Tokens (DB 0: `auth:access_token:{token}`)
+
+- **Expiration**: 15-minute TTL enforced by Redis; verify client-side validation
+- **Token Theft Mitigation**: Tokens stored with metadata (client_id, user_id, scope)
+  to enable scope validation on each request
+- **Revocation**: Immediate invalidation via `auth:blacklist:{token}` entries
+
+#### Refresh Tokens (DB 0: `auth:refresh_token:{token}`)
+
+- **Expiration**: 7-day TTL; consider shorter for high-security applications
+- **Rotation**: Implement refresh token rotation to detect token theft
+- **Binding**: Tokens bound to client_id; validate client on each refresh
+
+#### Authorization Codes (DB 0: `auth:code:{code}`)
+
+- **Expiration**: 10-minute TTL; single-use enforcement critical
+- **Replay Attack Prevention**: Delete code immediately after exchange
+- **PKCE Support**: Store and validate code_challenge for public clients
+
+### Attack Scenarios and Mitigations
+
+| Attack                        | Mitigation                                                |
+| ----------------------------- | --------------------------------------------------------- |
+| **Token Theft**               | Short TTLs, immediate blacklisting, token binding         |
+| **Authorization Code Replay** | Single-use codes, 10-min expiration, PKCE                 |
+| **Session Fixation**          | Generate new session ID on authentication                 |
+| **Brute Force**               | Rate limiting (`auth:rate_limit:{key}`), account lockout  |
+| **Token Enumeration**         | Cryptographically random tokens, constant-time comparison |
+| **Refresh Token Abuse**       | Token rotation, refresh count limits, anomaly detection   |
+
+### Rate Limiting Security
+
+Rate limiting keys (`auth:rate_limit:{key}`) protect against:
+
+- Brute force authentication attempts
+- Token endpoint abuse
+- API quota exhaustion
+- Denial of service
+
+**Recommended limits:**
+
+- IP-based: 50 requests/minute (login attempts)
+- Client-based: 1000 requests/minute (API calls)
+- Endpoint-based: Varies by sensitivity
+
+### Security Incident Response
+
+#### Suspected Token Compromise
+
+1. Add token to blacklist: `SET auth:blacklist:{token} 1 EX {remaining_ttl}`
+2. Force refresh token rotation for affected user
+3. Review rate limiting logs for suspicious patterns
+4. Consider session termination for affected client
+
+#### Client Secret Compromise
+
+1. Immediately rotate client credentials
+2. Invalidate all tokens issued to compromised client
+3. Review authorization code history
+4. Notify affected users if data exposure possible
+
+#### Session Database Breach
+
+1. Rotate all Redis passwords (REDIS_PASSWORD, ACL passwords)
+2. Force expiration of all active sessions
+3. Invalidate all refresh tokens
+4. Review network policies and access logs
+
+### OAuth2 Security Checklist
+
+- [ ] Access tokens have short TTL (15 min or less)
+- [ ] Refresh token rotation implemented
+- [ ] Authorization codes are single-use
+- [ ] PKCE enforced for public clients
+- [ ] Rate limiting enabled and configured
+- [ ] Token blacklist mechanism functional
+- [ ] Client secrets stored securely (never in code)
+- [ ] Token cleanup CronJob running
+- [ ] Session timeout enforced (1 hour default)
+- [ ] All OAuth2 endpoints require TLS in production
+
 ## Disclosure Policy
 
 We follow coordinated disclosure:

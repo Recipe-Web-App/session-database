@@ -33,7 +33,7 @@ echo "  • Prometheus deployment, service, and PVC"
 echo "  • Grafana deployment, service, and PVC"
 echo "  • Redis Exporter deployment and service"
 echo "  • All monitoring ConfigMaps"
-echo "  • Falco DaemonSet (cluster-wide)"
+echo "  • Ingress configuration"
 echo ""
 echo "⚠️  This will permanently delete monitoring data!"
 

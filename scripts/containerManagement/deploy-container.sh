@@ -3,10 +3,10 @@
 
 set -euo pipefail
 
-NAMESPACE="session-database"
+NAMESPACE="redis-database"
 CONFIG_DIR="k8s"
-SECRET_NAME="session-database-secret" # pragma: allowlist secret
-IMAGE_NAME="session-database"
+SECRET_NAME="redis-database-secret" # pragma: allowlist secret
+IMAGE_NAME="redis-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -126,8 +126,8 @@ print_separator "-"
 
 kubectl apply -f "${CONFIG_DIR}/redis/standalone/pvc.yaml"
 
-kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="session-database") | .metadata.name' | \
-  xargs -I{} kubectl label pv {} app=session-database --overwrite
+kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="redis-database") | .metadata.name' | \
+  xargs -I{} kubectl label pv {} app=redis-database --overwrite
 
 print_separator "="
 echo "📦 Deploying Redis container..."
@@ -143,7 +143,7 @@ envsubst < "${CONFIG_DIR}/redis/standalone/service-template.yaml" | kubectl appl
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
-  --selector=app=session-database,component!=initialization \
+  --selector=app=redis-database,component!=initialization \
   --timeout=90s
 
 print_separator "="
@@ -171,15 +171,15 @@ print_separator "="
 echo "🌐 Configuring external access..."
 print_separator "-"
 
-POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=session-database -o jsonpath="{.items[0].metadata.name}")
+POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=redis-database -o jsonpath="{.items[0].metadata.name}")
 
 MINIKUBE_IP=$(minikube ip)
-NODE_PORT=$(kubectl get svc session-database-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
+NODE_PORT=$(kubectl get svc redis-database-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
 
 if [ -n "$MINIKUBE_IP" ]; then
   echo "✅ Minikube IP: ${MINIKUBE_IP}"
   echo "✅ NodePort: ${NODE_PORT}"
-  LOCAL_HOSTNAME="session-database.local"
+  LOCAL_HOSTNAME="redis-database.local"
   sed -i "/${LOCAL_HOSTNAME}/d" /etc/hosts
   echo "${MINIKUBE_IP} ${LOCAL_HOSTNAME}" >> /etc/hosts
   echo "✅ Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
@@ -192,12 +192,12 @@ echo "✅ Redis is up and running with session management in namespace '$NAMESPA
 print_separator "-"
 echo "📡 Access info:"
 echo "  Pod: $POD_NAME"
-echo "  Internal Host: session-database-service.$NAMESPACE.svc.cluster.local"
+echo "  Internal Host: redis-database-service.$NAMESPACE.svc.cluster.local"
 if [ -n "$MINIKUBE_IP" ]; then
   echo "  Minikube IP: $MINIKUBE_IP"
   echo "  NodePort: $NODE_PORT"
-  echo "  Hostname: session-database.local"
-  echo "  External Access: redis-cli -h session-database.local -p $NODE_PORT -a \$REDIS_PASSWORD"
+  echo "  Hostname: redis-database.local"
+  echo "  External Access: redis-cli -h redis-database.local -p $NODE_PORT -a \$REDIS_PASSWORD"
 else
   echo "  External Access: (run 'minikube ip' and 'kubectl get svc -n $NAMESPACE' to check)"
 fi

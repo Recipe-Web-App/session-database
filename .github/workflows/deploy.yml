@@ -74,8 +74,8 @@ jobs:
 
       - name: Validate Helm chart
         run: |
-          helm lint ./helm/session-database
-          helm template session-database ./helm/session-database --debug
+          helm lint ./helm/redis-database
+          helm template redis-database ./helm/redis-database --debug
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -121,7 +121,7 @@ jobs:
         run: |
           NAMESPACE="${{ secrets.KUBE_NAMESPACE }}"
           if [ -z "$NAMESPACE" ]; then
-            NAMESPACE="session-database"
+            NAMESPACE="redis-database"
           fi
           echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
           echo "Using namespace: $NAMESPACE"
@@ -135,7 +135,7 @@ jobs:
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           SENTINEL_PASSWORD: ${{ secrets.SENTINEL_PASSWORD }}
         run: |
-          kubectl create secret generic session-database-secret \
+          kubectl create secret generic redis-database-secret \
             --from-literal=redis-password="${REDIS_PASSWORD}" \
             --from-literal=sentinel-password="${SENTINEL_PASSWORD:-$REDIS_PASSWORD}" \
             --namespace=${{ steps.namespace.outputs.namespace }} \
@@ -149,9 +149,9 @@ jobs:
             VALUES_FILE="values-production.yaml"
           fi
 
-          helm upgrade --install session-database ./helm/session-database \
+          helm upgrade --install redis-database ./helm/redis-database \
             --namespace ${{ steps.namespace.outputs.namespace }} \
-            --values ./helm/session-database/${VALUES_FILE} \
+            --values ./helm/redis-database/${VALUES_FILE} \
             --wait \
             --timeout 10m
 
@@ -162,7 +162,7 @@ jobs:
             kubectl rollout status deployment/redis-replica -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
             kubectl rollout status deployment/redis-sentinel -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
           else
-            kubectl rollout status deployment/session-database -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
+            kubectl rollout status deployment/redis-database -n ${{ steps.namespace.outputs.namespace }} --timeout=5m
           fi
 
       - name: Get deployment URL
@@ -213,7 +213,7 @@ jobs:
         run: |
           NAMESPACE="${{ secrets.KUBE_NAMESPACE }}"
           if [ -z "$NAMESPACE" ]; then
-            NAMESPACE="session-database"
+            NAMESPACE="redis-database"
           fi
           echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
 
@@ -245,13 +245,13 @@ jobs:
           echo "Testing Redis connection..."
 
           # Get Redis password
-          REDIS_PASSWORD=$(kubectl get secret session-database-secret -n ${{ steps.namespace.outputs.namespace }} -o jsonpath='{.data.redis-password}' | base64 -d)
+          REDIS_PASSWORD=$(kubectl get secret redis-database-secret -n ${{ steps.namespace.outputs.namespace }} -o jsonpath='{.data.redis-password}' | base64 -d)
 
           # Test Redis ping
           if [ "${{ needs.determine-environment.outputs.deployment_mode }}" = "ha-sentinel" ]; then
             POD_NAME=$(kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app=redis-master -o jsonpath='{.items[0].metadata.name}')
           else
-            POD_NAME=$(kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app=session-database -o jsonpath='{.items[0].metadata.name}')
+            POD_NAME=$(kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app=redis-database -o jsonpath='{.items[0].metadata.name}')
           fi
 
           PING_RESULT=$(kubectl exec -n ${{ steps.namespace.outputs.namespace }} $POD_NAME -- redis-cli -a "$REDIS_PASSWORD" ping)

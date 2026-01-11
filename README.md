@@ -99,7 +99,7 @@ enterprise-grade features:
 
    ```bash
    git clone <repository-url>
-   cd session-database
+   cd redis-database
    cp .env.example .env
    # Edit .env with your secure passwords (6 password types required)
    ```
@@ -146,8 +146,8 @@ enterprise-grade features:
 1. **Development deployment**:
 
    ```bash
-   helm install session-database ./helm/session-database \
-     --namespace session-database --create-namespace \
+   helm install redis-database ./helm/redis-database \
+     --namespace redis-database --create-namespace \
      --set redis.auth.password=your-redis-password \
      --set redis.auth.sentinel.password=your-sentinel-password
    ```
@@ -155,9 +155,9 @@ enterprise-grade features:
 2. **Production deployment**:
 
    ```bash
-   helm install session-database ./helm/session-database \
-     --namespace session-database --create-namespace \
-     --values ./helm/session-database/values-production.yaml
+   helm install redis-database ./helm/redis-database \
+     --namespace redis-database --create-namespace \
+     --values ./helm/redis-database/values-production.yaml
    ```
 
 ### Option 3: GitOps with ArgoCD (Production)
@@ -217,9 +217,9 @@ across the distributed system:
 
 ```bash
 # Development (port-forward)
-kubectl port-forward svc/prometheus-service -n session-database 9090:9090
-kubectl port-forward svc/grafana-service -n session-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
+kubectl port-forward svc/prometheus-service -n redis-database 9090:9090
+kubectl port-forward svc/grafana-service -n redis-database 3000:3000
+kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
 
 # Production (ingress)
 # https://prometheus.session-db.example.com
@@ -237,9 +237,9 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 ## Project Structure
 
 ```text
-session-database/
+redis-database/
 ├── helm/                           # Helm charts (recommended deployment)
-│   └── session-database/           # Main Helm chart
+│   └── redis-database/           # Main Helm chart
 │       ├── Chart.yaml              # Chart metadata
 │       ├── values.yaml             # Default configuration
 │       ├── values-local.yaml       # Local development overrides
@@ -249,7 +249,7 @@ session-database/
 │   ├── argocd/                     # GitOps configurations
 │   │   ├── application.yaml        # ArgoCD application
 │   │   ├── applicationset.yaml     # Multi-environment setup
-│   │   └── session-database-project-appproject.yaml
+│   │   └── redis-database-project-appproject.yaml
 │   ├── redis/                      # Redis session database
 │   │   ├── standalone/             # Simple deployment option
 │   │   │   ├── deployment.yaml     # Single Redis instance
@@ -318,7 +318,7 @@ import redis
 
 # Connect to Auth Service Database (DB 0)
 auth_client = redis.Redis(
-    host='session-database-service.session-database.svc.cluster.local',
+    host='redis-database-service.redis-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
     db=0,  # Auth database
@@ -327,7 +327,7 @@ auth_client = redis.Redis(
 
 # Connect to Cache Database (DB 1)
 cache_client = redis.Redis(
-    host='session-database-service.session-database.svc.cluster.local',
+    host='redis-database-service.redis-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
     db=1,  # Cache database
@@ -445,7 +445,7 @@ The Redis configuration is optimized for session management:
 
    ```bash
    # Test Redis connection
-   kubectl exec -n session-database <pod-name> -- \
+   kubectl exec -n redis-database <pod-name> -- \
      redis-cli -a redis_password ping  # pragma: allowlist secret
    ```
 
@@ -516,8 +516,8 @@ Each release automatically generates:
 1. **Git Tag**: Semantic version (e.g., `v1.2.3`)
 2. **GitHub Release**: Release notes from commit messages
 3. **Docker Images**: Multi-arch images pushed to GitHub Container Registry
-   - `ghcr.io/recipe-web-app/session-database:latest`
-   - `ghcr.io/recipe-web-app/session-database:v1.2.3`
+   - `ghcr.io/recipe-web-app/redis-database:latest`
+   - `ghcr.io/recipe-web-app/redis-database:v1.2.3`
 4. **Helm Chart**: Packaged chart attached to GitHub release
 5. **Changelog**: Auto-generated `CHANGELOG.md` with categorized changes
 
@@ -617,15 +617,15 @@ The deployment script automatically updates `/etc/hosts` for easy access.
 
 ```bash
 # Get Redis info
-kubectl exec -n session-database <pod-name> -- \
+kubectl exec -n redis-database <pod-name> -- \
   redis-cli -a redis_password info  # pragma: allowlist secret
 
 # Get memory usage
-kubectl exec -n session-database <pod-name> -- \
+kubectl exec -n redis-database <pod-name> -- \
   redis-cli -a redis_password info memory  # pragma: allowlist secret
 
 # Get session keys
-kubectl exec -n session-database <pod-name> -- \
+kubectl exec -n redis-database <pod-name> -- \
   redis-cli -a redis_password KEYS "session:*"  # pragma: allowlist secret
 ```
 
@@ -683,7 +683,7 @@ import redis
 
 # Connect to auth service database (DB 0)
 auth_client = redis.Redis(
-    host='session-database-service.session-database.svc.cluster.local',
+    host='redis-database-service.redis-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
     db=0,  # Auth database
@@ -692,7 +692,7 @@ auth_client = redis.Redis(
 
 # Connect to cache database (DB 1)
 cache_client = redis.Redis(
-    host='session-database-service.session-database.svc.cluster.local',
+    host='redis-database-service.redis-database.svc.cluster.local',
     port=6379,
     password='redis_password',  # pragma: allowlist secret
     db=1,  # Cache database

@@ -1,0 +1,48 @@
+{{- if .Values.redis.acl.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-database.fullname" . }}-acl
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  users.acl: |
+    # Redis ACL Configuration for Multi-Service Database
+    # Each service has its own user with restricted key access
+
+    # Admin user - full access (for ops/debugging)
+    user admin on >$(REDIS_ADMIN_PASSWORD) ~* &* +@all
+
+    {{- if .Values.redis.acl.users.auth.enabled }}
+    # Auth service - DB 0, auth:* keys only
+    user auth_user on >$(AUTH_SERVICE_REDIS_PASSWORD) ~{{ .Values.redis.acl.users.auth.keyPattern }} &* {{ .Values.redis.acl.users.auth.commands }}
+    {{- end }}
+
+    {{- if .Values.redis.acl.users.scraper.enabled }}
+    # Recipe Scraper - DBs 1-3, scraper:* keys only
+    user scraper_user on >$(SCRAPER_SERVICE_REDIS_PASSWORD) ~{{ .Values.redis.acl.users.scraper.keyPattern }} &* {{ .Values.redis.acl.users.scraper.commands }}
+    {{- end }}
+
+    {{- if .Values.redis.acl.users.user.enabled }}
+    # User Management - DB 4, user:* keys only
+    user user_user on >$(USER_SERVICE_REDIS_PASSWORD) ~{{ .Values.redis.acl.users.user.keyPattern }} &* {{ .Values.redis.acl.users.user.commands }}
+    {{- end }}
+
+    {{- if .Values.redis.acl.users.notification.enabled }}
+    # Notification Service - DB 5, notification:* keys only
+    user notification_user on >$(NOTIFICATION_SERVICE_REDIS_PASSWORD) ~{{ .Values.redis.acl.users.notification.keyPattern }} &* {{ .Values.redis.acl.users.notification.commands }}
+    {{- end }}
+
+    {{- if .Values.redis.acl.users.mealplan.enabled }}
+    # Meal Plan Management - DB 6, mealplan:* keys only
+    user mealplan_user on >$(MEALPLAN_SERVICE_REDIS_PASSWORD) ~{{ .Values.redis.acl.users.mealplan.keyPattern }} &* {{ .Values.redis.acl.users.mealplan.commands }}
+    {{- end }}
+
+    # Disable default user for security
+    user default off
+{{- end }}

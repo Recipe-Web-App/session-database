@@ -19,7 +19,7 @@ discover a security vulnerability, please follow these guidelines:
 **DO NOT** create a public GitHub issue.
 
 Instead, report through
-[GitHub Security Advisories](https://github.com/Recipe-Web-App/session-database/security/advisories/new):
+[GitHub Security Advisories](https://github.com/Recipe-Web-App/redis-database/security/advisories/new):
 
 1. Go to the Security tab
 2. Click "Report a vulnerability"
@@ -328,7 +328,7 @@ Stay informed about security updates:
 
 - Watch this repository for security advisories
 - Subscribe to release notifications
-- Monitor the [Security tab](https://github.com/Recipe-Web-App/session-database/security)
+- Monitor the [Security tab](https://github.com/Recipe-Web-App/redis-database/security)
 - Review [CHANGELOG.md](../CHANGELOG.md) for security fixes
 
 ## Acknowledgments
@@ -345,7 +345,7 @@ Contributors will be credited in:
 
 For security concerns that don't fit the above categories:
 
-- Open a [security discussion](https://github.com/Recipe-Web-App/session-database/discussions/categories/security)
+- Open a [security discussion](https://github.com/Recipe-Web-App/redis-database/discussions/categories/security)
 - For urgent private matters: Use GitHub Security Advisories
 
 Thank you for helping keep Session Database secure! 🔒

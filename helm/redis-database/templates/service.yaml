@@ -1,0 +1,108 @@
+{{- /*
+Redis Services - Master, Replica, Sentinel with optional NodePort for local access
+*/ -}}
+
+# Master Service (primary for writes)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis-database.fullname" . }}-master-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.masterLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.service.nodePort.enabled }}
+  type: NodePort
+  {{- else }}
+  type: {{ .Values.service.type }}
+  {{- end }}
+  ports:
+    - name: redis
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      {{- if .Values.service.nodePort.enabled }}
+      nodePort: {{ .Values.service.nodePort.port }}
+      {{- end }}
+  selector:
+    {{- include "redis-database.masterSelectorLabels" . | nindent 4 }}
+---
+# Replica Service (for read replicas)
+{{- if .Values.ha.sentinel.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis-database.fullname" . }}-replica-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.replicaLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: redis
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "redis-database.replicaSelectorLabels" . | nindent 4 }}
+---
+# Sentinel Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis-database.fullname" . }}-sentinel-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.sentinelLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.service.sentinel.nodePort.enabled }}
+  type: NodePort
+  {{- else }}
+  type: {{ .Values.service.sentinel.type }}
+  {{- end }}
+  ports:
+    - name: sentinel
+      port: {{ .Values.service.sentinel.port }}
+      targetPort: {{ .Values.service.sentinel.targetPort }}
+      protocol: TCP
+      {{- if .Values.service.sentinel.nodePort.enabled }}
+      nodePort: {{ .Values.service.sentinel.nodePort.port }}
+      {{- end }}
+  selector:
+    {{- include "redis-database.sentinelSelectorLabels" . | nindent 4 }}
+{{- end }}
+---
+# Headless service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis-database.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: redis
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "redis-database.selectorLabels" . | nindent 4 }}

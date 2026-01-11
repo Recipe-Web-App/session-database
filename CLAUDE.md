@@ -21,8 +21,8 @@ pre-commit run --all-files
 # Individual tools
 yamllint k8s/
 shellcheck scripts/**/*.sh
-helm lint ./helm/session-database
-helm template ./helm/session-database  # Validate Helm templates
+helm lint ./helm/redis-database
+helm template ./helm/redis-database  # Validate Helm templates
 kube-score score k8s/**/*.yaml --exclude-templates
 
 # Security scanning
@@ -36,13 +36,13 @@ trivy fs --severity HIGH,CRITICAL .
 
 ```bash
 # Development
-helm install session-database ./helm/session-database \
-  --namespace session-database --create-namespace
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace
 
 # Production with HA
-helm install session-database ./helm/session-database \
-  --namespace session-database --create-namespace \
-  --values ./helm/session-database/values-production.yaml
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace \
+  --values ./helm/redis-database/values-production.yaml
 
 # GitOps with ArgoCD
 kubectl apply -f k8s/argocd/application.yaml
@@ -64,7 +64,7 @@ kubectl apply -f k8s/argocd/application.yaml
 
 ```bash
 # Access via hostname (after deploy-container.sh configures /etc/hosts)
-redis-cli -h session-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+redis-cli -h redis-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
 ```
 
 NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
@@ -74,19 +74,19 @@ NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
 
 ```bash
 # Connect to Auth DB (0)
-kubectl exec -it deployment/session-database -n session-database -- \
+kubectl exec -it deployment/redis-database -n redis-database -- \
   redis-cli -a $REDIS_PASSWORD -n 0
 
 # Connect to Cache DB (1)
-kubectl exec -it deployment/session-database -n session-database -- \
+kubectl exec -it deployment/redis-database -n redis-database -- \
   redis-cli -a $REDIS_PASSWORD -n 1
 
 # HA mode - connect to master
-kubectl exec -it deployment/redis-master -n session-database -- \
+kubectl exec -it deployment/redis-master -n redis-database -- \
   redis-cli -a $REDIS_PASSWORD -n 0
 
 # Check Sentinel status
-kubectl exec -it deployment/redis-sentinel -n session-database -- \
+kubectl exec -it deployment/redis-sentinel -n redis-database -- \
   redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
 
 # Helper scripts
@@ -102,9 +102,9 @@ kubectl exec -it deployment/redis-sentinel -n session-database -- \
 
 ```bash
 # Port-forward for local access
-kubectl port-forward svc/prometheus-service -n session-database 9090:9090
-kubectl port-forward svc/grafana-service -n session-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
+kubectl port-forward svc/prometheus-service -n redis-database 9090:9090
+kubectl port-forward svc/grafana-service -n redis-database 3000:3000
+kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
 ```
 
 ## Architecture
@@ -159,16 +159,16 @@ feat!: breaking change          # Major version bump
 
 ```bash
 # Check cluster health
-kubectl get pods,svc,pvc -n session-database
+kubectl get pods,svc,pvc -n redis-database
 
 # View logs
-kubectl logs -n session-database -l app.kubernetes.io/name=session-database --tail=100
+kubectl logs -n redis-database -l app.kubernetes.io/name=redis-database --tail=100
 
 # Check Sentinel
 kubectl exec -it redis-sentinel-xxx -- redis-cli -p 26379 sentinel masters
 
 # Monitor cleanup jobs
-kubectl logs -n session-database -l component=maintenance -f
+kubectl logs -n redis-database -l component=maintenance -f
 
 # Script-based status
 ./scripts/containerManagement/get-container-status.sh

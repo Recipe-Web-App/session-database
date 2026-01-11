@@ -13,7 +13,7 @@ patterns that ensure compatibility across the entire distributed system.
 > **Important**: These scripts are designed for **Minikube** local development
 > environments. For other Kubernetes distributions (Kind, k3s, microk8s, cloud
 > providers), use **Helm deployment** instead:
-> `helm install session-database ./helm/session-database`
+> `helm install redis-database ./helm/redis-database`
 
 ## Script Categories
 
@@ -29,7 +29,7 @@ These scripts deploy a **standalone Redis instance** for development:
 
 > **Note**: For High Availability (HA) deployment with Redis Sentinel
 > (master + replicas + sentinel), use **Helm with production values**:
-> `helm install session-database ./helm/session-database --values ./helm/session-database/values-production.yaml`
+> `helm install redis-database ./helm/redis-database --values ./helm/redis-database/values-production.yaml`
 >
 > The HA manifests are available at `k8s/redis/ha/` for manual deployment.
 
@@ -76,7 +76,7 @@ set -euo pipefail
 ### 2. Variable Naming Convention
 
 ```bash
-NAMESPACE="session-database"
+NAMESPACE="redis-database"
 DEPLOYMENT_NAME="redis-master"
 SERVICE_NAME="redis-master-service"
 ```
@@ -133,7 +133,7 @@ print_separator "="
 ./scripts/containerManagement/get-container-status.sh
 
 # Check monitoring services manually
-kubectl get pods,svc -n session-database -l component=monitoring
+kubectl get pods,svc -n redis-database -l component=monitoring
 ```
 
 ### Maintenance Operations
@@ -286,7 +286,7 @@ These scripts are designed for easy migration to a centralized SystemManagement 
 
 # Check everything is working
 ./scripts/containerManagement/get-container-status.sh
-kubectl get pods,svc -n session-database
+kubectl get pods,svc -n redis-database
 ```
 
 ### Production Deployment
@@ -302,7 +302,7 @@ cp .env.example .env
 
 # Verify deployment
 ./scripts/containerManagement/get-container-status.sh
-kubectl get pods,svc -n session-database -l component=monitoring
+kubectl get pods,svc -n redis-database -l component=monitoring
 ```
 
 ### Troubleshooting
@@ -312,12 +312,12 @@ kubectl get pods,svc -n session-database -l component=monitoring
 ./scripts/containerManagement/get-container-status.sh
 
 # Check monitoring services
-kubectl get pods,svc -n session-database -l component=monitoring
+kubectl get pods,svc -n redis-database -l component=monitoring
 
 # Common troubleshooting
-kubectl get pods -n session-database
-kubectl describe pods -n session-database
-kubectl logs -n session-database -l app.kubernetes.io/name=session-database
+kubectl get pods -n redis-database
+kubectl describe pods -n redis-database
+kubectl logs -n redis-database -l app.kubernetes.io/name=redis-database
 ```
 
 This documentation ensures consistent usage patterns across the distributed

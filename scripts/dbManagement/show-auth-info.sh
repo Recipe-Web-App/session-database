@@ -14,8 +14,8 @@ print_separator() {
   printf '%*s\n' "$width" '' | tr ' ' "$char"
 }
 
-NAMESPACE="session-database"
-POD_LABEL="app=session-database"
+NAMESPACE="redis-database"
+POD_LABEL="app=redis-database"
 
 print_separator "="
 echo "📊 Auth Service Database Information Report"

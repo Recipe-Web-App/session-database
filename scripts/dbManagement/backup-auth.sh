@@ -13,8 +13,8 @@ print_separator() {
   printf '%*s\n' "$width" '' | tr ' ' "$char"
 }
 
-NAMESPACE="session-database"
-POD_LABEL="app=session-database"
+NAMESPACE="redis-database"
+POD_LABEL="app=redis-database"
 BACKUP_DIR="./backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 DATABASE=${1:-"all"}  # Default to backing up all databases

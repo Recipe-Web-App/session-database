@@ -2,11 +2,11 @@
 version: '3.8'
 
 services:
-  session-database:
+  redis-database:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: session-database
+    container_name: redis-database
     ports:
       - "6379:6379"
     volumes:

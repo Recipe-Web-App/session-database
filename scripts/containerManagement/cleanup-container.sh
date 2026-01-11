@@ -3,8 +3,8 @@
 
 set -euo pipefail
 
-NAMESPACE="session-database"
-IMAGE_NAME="session-database"
+NAMESPACE="redis-database"
+IMAGE_NAME="redis-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -36,7 +36,7 @@ print_separator "="
 echo "🧹 Removing hostname from /etc/hosts..."
 print_separator "-"
 
-HOSTNAME="session-database.local"
+HOSTNAME="redis-database.local"
 sed -i "/${HOSTNAME}/d" /etc/hosts
 echo "✅ Removed ${HOSTNAME} from /etc/hosts"
 
@@ -44,10 +44,10 @@ print_separator "="
 echo "🧹 Deleting Kubernetes resources in namespace '$NAMESPACE'..."
 print_separator "-"
 
-kubectl delete configmap session-database-config -n "$NAMESPACE" --ignore-not-found
+kubectl delete configmap redis-database-config -n "$NAMESPACE" --ignore-not-found
 kubectl delete -f k8s/redis/standalone/deployment.yaml -n "$NAMESPACE" --ignore-not-found
-kubectl delete secret session-database-secret -n "$NAMESPACE" --ignore-not-found
-kubectl delete service session-database-service -n "$NAMESPACE" --ignore-not-found
+kubectl delete secret redis-database-secret -n "$NAMESPACE" --ignore-not-found
+kubectl delete service redis-database-service -n "$NAMESPACE" --ignore-not-found
 
 print_separator "="
 read -r -p "⚠️ Do you want to delete the PersistentVolumeClaim (PVC)? This will delete all stored session data! (y/N): " del_pvc
@@ -55,7 +55,7 @@ print_separator "-"
 
 if [[ "$del_pvc" =~ ^[Yy]$ ]]; then
   kubectl delete -f k8s/redis/standalone/pvc.yaml -n "$NAMESPACE" --ignore-not-found
-  kubectl delete pv -l app=session-database
+  kubectl delete pv -l app=redis-database
   echo "🧨 PVC deleted."
 else
   echo "💾 PVC retained."

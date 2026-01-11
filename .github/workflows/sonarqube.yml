@@ -36,7 +36,7 @@ jobs:
         with:
           scannerHome: /opt/sonar-scanner
           args: >
-            -Dsonar.projectKey=session-database
+            -Dsonar.projectKey=redis-database
             -Dsonar.projectName=Session Database
             -Dsonar.projectVersion=1.0.0
             -Dsonar.sources=.

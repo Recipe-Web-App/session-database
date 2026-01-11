@@ -1,0 +1,140 @@
+---
+# Local deployment values with NodePort for external access
+# Use this file for local Kubernetes clusters (minikube, k3s, kind, microk8s, etc.)
+#
+# Usage:
+#   helm install redis-database ./helm/redis-database \
+#     --namespace redis-database --create-namespace \
+#     --values ./helm/redis-database/values-local.yaml
+#
+# Access Redis via: redis-cli -h $(minikube ip) -p 30379 -a $REDIS_PASSWORD
+
+# Image configuration for local development
+image:
+  repository: redis-database
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Deployment mode - sentinel for HA testing, standalone for simple setup
+deploymentMode: sentinel
+
+# Service configuration with NodePort enabled for external access
+service:
+  type: NodePort
+  port: 6379
+  targetPort: 6379
+  nodePort:
+    enabled: true
+    port: 30379
+
+  sentinel:
+    type: NodePort
+    port: 26379
+    targetPort: 26379
+    nodePort:
+      enabled: true
+      port: 30380
+
+# Reduced HA configuration for local development
+ha:
+  sentinel:
+    enabled: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+  master:
+    replicas: 1
+    persistence:
+      enabled: true
+      size: "1Gi"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+        ephemeralStorage: "512Mi"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+        ephemeralStorage: "1Gi"
+
+  replica:
+    replicas: 1
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+        ephemeralStorage: "256Mi"
+      limits:
+        memory: "256Mi"
+        cpu: "100m"
+        ephemeralStorage: "512Mi"
+
+# Redis authentication for local development
+# NOTE: These are intentional local dev placeholders, not real secrets
+redis:
+  auth:
+    enabled: true
+    password: "localdev123"  # pragma: allowlist secret
+    sentinel:
+      password: "localdev123"  # pragma: allowlist secret
+
+  acl:
+    enabled: true
+    users:
+      auth:
+        enabled: true
+        password: "auth_localdev"  # pragma: allowlist secret
+        keyPattern: "auth:*"
+        commands: "+@all -@dangerous"
+      scraper:
+        enabled: true
+        password: "scraper_localdev"  # pragma: allowlist secret
+        keyPattern: "scraper:*"
+        commands: "+@all -@dangerous"
+      user:
+        enabled: true
+        password: "user_localdev"  # pragma: allowlist secret
+        keyPattern: "user:*"
+        commands: "+@all -@dangerous"
+      notification:
+        enabled: true
+        password: "notification_localdev"  # pragma: allowlist secret
+        keyPattern: "notification:*"
+        commands: "+@all -@dangerous"
+      mealplan:
+        enabled: true
+        password: "mealplan_localdev"  # pragma: allowlist secret
+        keyPattern: "mealplan:*"
+        commands: "+@all -@dangerous"
+
+  config:
+    maxmemory: "256mb"
+    maxmemoryPolicy: "allkeys-lru"
+    save: "900 1"
+    appendonly: false
+    timeout: 0
+    tcpKeepalive: 60
+
+# Relaxed security for local development
+security:
+  podSecurityStandards:
+    enabled: true
+    enforce: "baseline"
+  networkPolicies:
+    enabled: false
+
+# Disable autoscaling locally
+autoscaling:
+  enabled: false
+
+# Disable PDB for local (single replica)
+podDisruptionBudget:
+  enabled: false

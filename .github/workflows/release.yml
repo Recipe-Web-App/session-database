@@ -157,8 +157,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/session-database:latest
-            ghcr.io/${{ github.repository }}/session-database:${{ needs.release.outputs.version }}
+            ghcr.io/${{ github.repository }}/redis-database:latest
+            ghcr.io/${{ github.repository }}/redis-database:${{ needs.release.outputs.version }}
           labels: |
             org.opencontainers.image.title=Session Database
             org.opencontainers.image.description=Redis-based session storage service
@@ -186,12 +186,12 @@ jobs:
 
       - name: Update Helm Chart version
         run: |
-          sed -i "s/^version:.*/version: ${{ needs.release.outputs.version }}/" helm/session-database/Chart.yaml
-          sed -i "s/^appVersion:.*/appVersion: \"${{ needs.release.outputs.version }}\"/" helm/session-database/Chart.yaml
+          sed -i "s/^version:.*/version: ${{ needs.release.outputs.version }}/" helm/redis-database/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${{ needs.release.outputs.version }}\"/" helm/redis-database/Chart.yaml
 
       - name: Package Helm Chart
         run: |
-          helm package helm/session-database --destination ./helm-packages
+          helm package helm/redis-database --destination ./helm-packages
 
       - name: Upload Helm Chart to Release
         uses: softprops/action-gh-release@v2

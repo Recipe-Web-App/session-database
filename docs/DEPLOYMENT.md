@@ -347,12 +347,11 @@ Default credentials:
 
 ```bash
 # Check overall system health
-./scripts/jobHelpers/session-health-check.sh
+./scripts/dbManagement/service-monitor.sh
 
 # Check individual components
 kubectl get pods -n redis-database
 kubectl get services -n redis-database
-kubectl get cronjobs -n redis-database
 ```
 
 ### Scaling

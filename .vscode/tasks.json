@@ -510,50 +510,6 @@
     },
 
     // ========================================================================
-    // JOB HELPERS
-    // ========================================================================
-    {
-      "label": "Jobs: Session Health Check",
-      "type": "shell",
-      "command": "./scripts/jobHelpers/session-health-check.sh",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Jobs: Session Cleanup",
-      "type": "shell",
-      "command": "./scripts/jobHelpers/session-cleanup.sh",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Jobs: Cache Cleanup",
-      "type": "shell",
-      "command": "./scripts/jobHelpers/cache-cleanup.sh",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-
-    // ========================================================================
     // KUBERNETES COMMANDS
     // ========================================================================
     {

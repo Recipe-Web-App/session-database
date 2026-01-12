@@ -267,8 +267,7 @@ redis-database/
 │   └── grafana/         # Dashboards
 ├── scripts/             # Automation scripts
 │   ├── containerManagement/
-│   ├── dbManagement/
-│   └── jobHelpers/
+│   └── dbManagement/
 ├── config/              # Configuration files
 ├── redis/               # Redis configurations
 └── docs/                # Documentation

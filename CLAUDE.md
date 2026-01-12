@@ -72,15 +72,49 @@ NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
 
 ## Database Operations
 
+### Service Databases
+
+| DB  | Service           | Description                  |
+| --- | ----------------- | ---------------------------- |
+| 0   | auth              | OAuth2 authentication        |
+| 1   | scraper-cache     | Recipe scraper cache         |
+| 2   | scraper-queue     | Recipe scraper queue         |
+| 3   | scraper-ratelimit | Recipe scraper rate limiting |
+| 4   | user              | User management              |
+| 5   | notification      | Notification service         |
+| 6   | mealplan          | Meal plan management         |
+
+### Management Scripts
+
 ```bash
-# Connect to Auth DB (0)
-kubectl exec -it deployment/redis-database -n redis-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 0
+# Interactive connection by service name
+./scripts/dbManagement/service-connect.sh auth
+./scripts/dbManagement/service-connect.sh scraper-cache
 
-# Connect to Cache DB (1)
-kubectl exec -it deployment/redis-database -n redis-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 1
+# View service info (summary or detailed)
+./scripts/dbManagement/service-info.sh                   # All services summary
+./scripts/dbManagement/service-info.sh auth              # Single service summary
+./scripts/dbManagement/service-info.sh auth --detailed   # Full key inspection
 
+# Monitor services
+./scripts/dbManagement/service-monitor.sh                # All services health
+./scripts/dbManagement/service-monitor.sh auth           # Single service metrics
+./scripts/dbManagement/service-monitor.sh --watch        # Continuous monitoring
+
+# Backup databases
+./scripts/dbManagement/db-backup.sh                      # Backup all services
+./scripts/dbManagement/db-backup.sh auth                 # Backup single service
+./scripts/dbManagement/db-backup.sh auth scraper-cache   # Backup multiple
+
+# Restore from backup
+./scripts/dbManagement/db-restore.sh backups/file.json              # Full restore
+./scripts/dbManagement/db-restore.sh backups/file.json --service auth  # Single service
+./scripts/dbManagement/db-restore.sh backups/file.json --dry-run    # Preview only
+```
+
+### Direct kubectl Access
+
+```bash
 # HA mode - connect to master
 kubectl exec -it deployment/redis-master -n redis-database -- \
   redis-cli -a $REDIS_PASSWORD -n 0
@@ -88,14 +122,6 @@ kubectl exec -it deployment/redis-master -n redis-database -- \
 # Check Sentinel status
 kubectl exec -it deployment/redis-sentinel -n redis-database -- \
   redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
-
-# Helper scripts
-./scripts/dbManagement/redis-connect.sh [0|1]  # Interactive connection
-./scripts/dbManagement/auth-connect.sh         # Auth DB with utilities
-./scripts/dbManagement/cache-connect.sh        # Cache DB with utilities
-./scripts/dbManagement/backup-auth.sh [all|auth|cache]
-./scripts/dbManagement/show-auth-info.sh       # Auth service info
-./scripts/jobHelpers/session-health-check.sh   # Health check
 ```
 
 ## Monitoring
@@ -118,10 +144,10 @@ kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
 ### Core Components
 
 - **Redis Sentinel HA**: Master + 2+ replicas + 3 Sentinel instances
-- **Multi-Database**: DB 0 (OAuth2 auth), DB 1 (service cache)
+- **Multi-Database**: 7 service databases (see Database Operations)
 - **Monitoring**: Prometheus, Grafana, Alertmanager, Redis Exporter
 - **Security**: Network policies, TLS, ACL authentication, Pod Security Standards
-- **Automated Ops**: Token cleanup CronJob (5 min), cache cleanup (10 min), HPA
+- **Automated Ops**: TTL-based key expiration, HPA
 
 ### Data Model
 

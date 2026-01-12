@@ -297,8 +297,7 @@ redis-database/
 │   │   ├── get-container-status.sh # Check status
 │   │   ├── cleanup-container.sh    # Cleanup Redis
 │   │   └── cleanup-monitoring.sh   # Cleanup monitoring
-│   ├── dbManagement/               # Database operations
-│   └── jobHelpers/                 # Health checks and utilities
+│   └── dbManagement/               # Database operations
 ├── redis/                          # Redis configuration
 │   ├── init/scripts/               # Lua initialization scripts
 │   └── data/                       # Redis data directory
@@ -373,16 +372,11 @@ recipe_data = cache_client.get(f"cache:resource:popular_recipes")
 
 #### Database Management
 
-- **Connect to Redis**: `./scripts/dbManagement/redis-connect.sh [0|1]`
-  (DB 0=auth, DB 1=cache)
-- **Auth-specific connection**: `./scripts/dbManagement/auth-connect.sh`
-- **Cache-specific connection**: `./scripts/dbManagement/cache-connect.sh`
-- **Backup databases**:
-  `./scripts/dbManagement/backup-auth.sh [all|auth|cache]`
-- **Cache information**: `./scripts/dbManagement/show-cache-info.sh`
-- **Monitor auth service**: `./scripts/dbManagement/monitor-auth.sh`
-- **Auth service information**: `./scripts/dbManagement/show-auth-info.sh`
-- **Health check**: `./scripts/jobHelpers/session-health-check.sh`
+- **Connect to service DB**: `./scripts/dbManagement/service-connect.sh <service>`
+- **View service info**: `./scripts/dbManagement/service-info.sh [service] [--detailed]`
+- **Monitor services**: `./scripts/dbManagement/service-monitor.sh [service] [--watch]`
+- **Backup databases**: `./scripts/dbManagement/db-backup.sh [service...]`
+- **Restore from backup**: `./scripts/dbManagement/db-restore.sh <file> [--dry-run]`
 
 ## Configuration
 

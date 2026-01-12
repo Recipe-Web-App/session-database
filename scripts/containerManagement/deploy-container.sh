@@ -1,11 +1,13 @@
 #!/bin/bash
 # scripts/containerManagement/deploy-container.sh
+# Deploys Redis database using Helm chart
 
 set -euo pipefail
 
 NAMESPACE="redis-database"
-CONFIG_DIR="k8s"
-SECRET_NAME="redis-database-secret" # pragma: allowlist secret
+RELEASE_NAME="redis-database"
+CHART_PATH="./helm/redis-database"
+VALUES_FILE="./helm/redis-database/values-local.yaml"
 IMAGE_NAME="redis-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
@@ -21,34 +23,38 @@ print_separator() {
 }
 
 print_separator "="
-echo "🔧 Setting up Minikube environment..."
+echo "Checking prerequisites..."
 print_separator "-"
 env_status=true
+
 if ! command -v minikube >/dev/null 2>&1; then
-  echo "❌ Minikube is not installed. Please install it first."
+  echo "Minikube is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ Minikube is installed."
+  echo "Minikube is installed."
 fi
 
 if ! command -v kubectl >/dev/null 2>&1; then
-  echo "❌ kubectl is not installed. Please install it first."
+  echo "kubectl is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ kubectl is installed."
+  echo "kubectl is installed."
 fi
+
 if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ Docker is not installed. Please install it first."
+  echo "Docker is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ Docker is installed."
+  echo "Docker is installed."
 fi
-if ! command -v jq >/dev/null 2>&1; then
-  echo "❌ jq is not installed. Please install it first."
+
+if ! command -v helm >/dev/null 2>&1; then
+  echo "Helm is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ jq is installed."
+  echo "Helm is installed."
 fi
+
 if ! $env_status; then
   echo "Please resolve the above issues before proceeding."
   exit 1
@@ -56,31 +62,31 @@ fi
 
 if ! minikube status >/dev/null 2>&1; then
   print_separator "-"
-  echo "🚀 Starting Minikube..."
+  echo "Starting Minikube..."
   minikube start
 
   if ! minikube addons list | grep -q 'ingress *enabled'; then
-    echo "🔌 Enabling Minikube ingress addon..."
+    echo "Enabling Minikube ingress addon..."
     minikube addons enable ingress
   fi
-  echo "✅ Minikube started."
+  echo "Minikube started."
 else
-  echo "✅ Minikube is already running."
+  echo "Minikube is already running."
 fi
 
 print_separator "="
-echo "📂 Ensuring namespace '${NAMESPACE}' exists..."
+echo "Ensuring namespace '${NAMESPACE}' exists..."
 print_separator "-"
 
 if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
-  echo "✅ '$NAMESPACE' namespace already exists."
+  echo "'$NAMESPACE' namespace already exists."
 else
   kubectl create namespace "$NAMESPACE"
-  echo "✅ '$NAMESPACE' namespace created."
+  echo "'$NAMESPACE' namespace created."
 fi
 
 print_separator "="
-echo "🔧 Loading environment variables from .env file (if present)..."
+echo "Loading environment variables from .env file (if present)..."
 print_separator "-"
 
 if [ -f .env ]; then
@@ -93,106 +99,93 @@ if [ -f .env ]; then
   # Capture env after
   env | cut -d= -f1 | sort > "$AFTER_ENV"
   # Show newly loaded/changed variables
-  echo "✅ Loaded variables from .env:"
+  echo "Loaded variables from .env:"
   comm -13 "$BEFORE_ENV" "$AFTER_ENV"
   rm -f "$BEFORE_ENV" "$AFTER_ENV"
   set +o allexport
 fi
 
 print_separator "="
-echo "🐳 Building Docker image: ${FULL_IMAGE_NAME} (inside Minikube Docker daemon)"
+echo "Building Docker image: ${FULL_IMAGE_NAME} (inside Minikube Docker daemon)"
 print_separator '-'
 
 eval "$(minikube docker-env)"
 docker build -t "$FULL_IMAGE_NAME" .
-echo "✅ Docker image '${FULL_IMAGE_NAME}' built successfully."
+echo "Docker image '${FULL_IMAGE_NAME}' built successfully."
 
 print_separator "="
-echo "⚙️ Creating/Updating ConfigMap from env..."
+echo "Deploying Redis with Helm..."
 print_separator "-"
 
-envsubst < "${CONFIG_DIR}/templates/configmap-template.yaml" | kubectl apply -f -
+# Build Helm set flags from environment variables
+HELM_SET_FLAGS=""
+
+# Set image tag
+HELM_SET_FLAGS="$HELM_SET_FLAGS --set image.tag=${IMAGE_TAG}"
+
+# Set passwords from .env if available
+if [ -n "${REDIS_PASSWORD:-}" ]; then
+  HELM_SET_FLAGS="$HELM_SET_FLAGS --set redis.auth.password=${REDIS_PASSWORD}"
+fi
+
+if [ -n "${SENTINEL_PASSWORD:-}" ]; then
+  HELM_SET_FLAGS="$HELM_SET_FLAGS --set redis.auth.sentinel.password=${SENTINEL_PASSWORD}"
+fi
+
+# Set NodePort values from .env if available
+if [ -n "${REDIS_NODEPORT:-}" ]; then
+  HELM_SET_FLAGS="$HELM_SET_FLAGS --set service.nodePort.port=${REDIS_NODEPORT}"
+fi
+
+if [ -n "${SENTINEL_NODEPORT:-}" ]; then
+  HELM_SET_FLAGS="$HELM_SET_FLAGS --set service.sentinel.nodePort.port=${SENTINEL_NODEPORT}"
+fi
+
+# Deploy using Helm
+# shellcheck disable=SC2086
+helm upgrade --install "$RELEASE_NAME" "$CHART_PATH" \
+  --namespace "$NAMESPACE" \
+  --values "$VALUES_FILE" \
+  $HELM_SET_FLAGS \
+  --wait \
+  --timeout 5m
+
+echo "Helm deployment completed successfully."
 
 print_separator "="
-echo "🔐 Creating/updating Secret..."
+echo "Waiting for pods to be ready..."
 print_separator "-"
-
-kubectl delete secret "$SECRET_NAME" -n "$NAMESPACE" --ignore-not-found
-envsubst < "${CONFIG_DIR}/templates/secret-template.yaml" | kubectl apply -f -
-
-print_separator "="
-echo "💾 Applying PersistentVolumeClaim..."
-print_separator "-"
-
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/pvc.yaml"
-
-kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="redis-database") | .metadata.name' | \
-  xargs -I{} kubectl label pv {} app=redis-database --overwrite
-
-print_separator "="
-echo "📦 Deploying Redis container..."
-print_separator "-"
-
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/deployment.yaml"
-
-print_separator "="
-echo "🌐 Exposing Redis via NodePort Service..."
-print_separator "-"
-
-envsubst < "${CONFIG_DIR}/redis/standalone/service-template.yaml" | kubectl apply -f -
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
-  --selector=app=redis-database,component!=initialization \
+  --selector=app.kubernetes.io/name=redis-database \
   --timeout=90s
 
-print_separator "="
-echo "🔧 Running Redis Lua script initialization..."
-print_separator "-"
-
-# Clean up any previous init jobs
-kubectl delete job redis-lua-init -n "$NAMESPACE" --ignore-not-found
-
-# Run the initialization job
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/init-job.yaml"
-
-# Wait for the job to complete
-if kubectl get job redis-lua-init -n "$NAMESPACE" -o jsonpath='{.status.conditions[0].type}' 2>/dev/null | grep -q "Complete"; then
-  echo "✅ Init job already complete"
-else
-  kubectl wait --namespace="$NAMESPACE" \
-    --for=condition=Complete job/redis-lua-init \
-    --timeout=60s
-fi
-
-echo "✅ Lua scripts initialized successfully"
+echo "Pods are ready."
 
 print_separator "="
-echo "🌐 Configuring external access..."
+echo "Configuring external access..."
 print_separator "-"
-
-POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=redis-database -o jsonpath="{.items[0].metadata.name}")
 
 MINIKUBE_IP=$(minikube ip)
-NODE_PORT=$(kubectl get svc redis-database-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
+NODE_PORT=${REDIS_NODEPORT:-30379}
 
 if [ -n "$MINIKUBE_IP" ]; then
-  echo "✅ Minikube IP: ${MINIKUBE_IP}"
-  echo "✅ NodePort: ${NODE_PORT}"
+  echo "Minikube IP: ${MINIKUBE_IP}"
+  echo "NodePort: ${NODE_PORT}"
   LOCAL_HOSTNAME="redis-database.local"
   sed -i "/${LOCAL_HOSTNAME}/d" /etc/hosts
   echo "${MINIKUBE_IP} ${LOCAL_HOSTNAME}" >> /etc/hosts
-  echo "✅ Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
+  echo "Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
 else
-  echo "⚠️ Could not determine Minikube IP"
+  echo "Warning: Could not determine Minikube IP"
 fi
 
 print_separator "="
-echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
+echo "Redis is up and running in namespace '$NAMESPACE'."
 print_separator "-"
-echo "📡 Access info:"
-echo "  Pod: $POD_NAME"
-echo "  Internal Host: redis-database-service.$NAMESPACE.svc.cluster.local"
+echo "Access info:"
+echo "  Internal Host: redis-database-master.$NAMESPACE.svc.cluster.local"
 if [ -n "$MINIKUBE_IP" ]; then
   echo "  Minikube IP: $MINIKUBE_IP"
   echo "  NodePort: $NODE_PORT"
@@ -202,5 +195,4 @@ else
   echo "  External Access: (run 'minikube ip' and 'kubectl get svc -n $NAMESPACE' to check)"
 fi
 echo "  Internal Port: 6379"
-echo "  Database: Redis"
 print_separator "="

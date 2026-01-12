@@ -77,15 +77,6 @@ jobs:
           helm lint ./helm/redis-database
           helm template redis-database ./helm/redis-database --debug
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Validate Kubernetes manifests
-        run: |
-          kubectl apply --dry-run=client -f k8s/ --recursive
-
   deploy:
     name: Deploy to ${{ needs.determine-environment.outputs.environment }}
     runs-on: ubuntu-latest

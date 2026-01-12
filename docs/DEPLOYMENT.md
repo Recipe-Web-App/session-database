@@ -123,112 +123,29 @@ helm install redis-database ./helm/redis-database \
   --set redis.auth.sentinel.password=your-sentinel-password
 ```
 
-### Option 2: GitOps with ArgoCD (Recommended for Production)
+### Option 2: Script-based Deployment (Development)
 
-1. **Install ArgoCD Application**:
-
-```bash
-kubectl apply -f k8s/argocd/application.yaml
-```
-
-1. **For Multi-Environment Setup**:
+For development environments using containerManagement scripts:
 
 ```bash
-kubectl apply -f k8s/argocd/applicationset.yaml
-```
-
-1. **Access ArgoCD UI**:
-
-```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-
-### Option 3: Script-based Deployment (Development/Legacy)
-
-For development environments and legacy compatibility using containerManagement scripts:
-
-#### Core Redis Deployment
-
-```bash
-# Deploy Redis HA cluster (Master, Replicas, Sentinel)
+# Deploy Redis via Helm (handles minikube setup, Docker build, Helm install)
 ./scripts/containerManagement/deploy-container.sh
 
 # Check Redis cluster status
 ./scripts/containerManagement/get-container-status.sh
-```
-
-#### Supporting Services Deployment
-
-```bash
-# Deploy monitoring, alerting, and security components
-./scripts/containerManagement/deploy-monitoring.sh
-
-# Check monitoring services status
-kubectl get pods,svc -n redis-database -l component=monitoring
-```
-
-#### Complete Script-based Workflow
-
-```bash
-# Full deployment
-./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-monitoring.sh
-
-# Verify deployment
-./scripts/containerManagement/get-container-status.sh
-kubectl get pods,svc -n redis-database -l component=monitoring
 
 # Maintenance operations
 ./scripts/containerManagement/stop-container.sh      # Stop for maintenance
 ./scripts/containerManagement/start-container.sh     # Resume operations
 
-# Clean removal (monitoring first, then core)
-./scripts/containerManagement/cleanup-monitoring.sh
+# Cleanup
 ./scripts/containerManagement/cleanup-container.sh
 ```
 
-**Note**: These scripts follow consistent patterns across the distributed system
-and are designed for eventual migration to a SystemManagement project.
+**Note**: These scripts follow consistent patterns across the distributed system.
 See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for detailed documentation.
 
-### Option 4: Manual Kubernetes Manifests
-
-For advanced customization or when other deployment methods are not available:
-
-```bash
-# Apply all manifests in order by application
-
-# 1. Shared resources first
-kubectl apply -f k8s/shared/podsecurity.yaml
-kubectl apply -f k8s/templates/secret-template.yaml      # After substituting
-                                                              # environment variables
-kubectl apply -f k8s/templates/configmap-template.yaml  # After substituting
-                                                                 # environment variables
-kubectl apply -f k8s/shared/networkpolicy.yaml
-
-# 2. Redis components (choose standalone OR ha deployment)
-
-# Option A: Standalone Redis deployment
-kubectl apply -f k8s/redis/standalone/
-
-# Option B: High Availability Redis deployment
-kubectl apply -f k8s/redis/ha/master/
-kubectl apply -f k8s/redis/ha/replica/
-kubectl apply -f k8s/redis/ha/sentinel/
-kubectl apply -f k8s/redis/shared/          # Session cleanup jobs
-kubectl apply -f k8s/redis/autoscaling/     # HPA
-
-# 3. Monitoring stack
-kubectl apply -f k8s/prometheus/
-kubectl apply -f k8s/grafana/
-kubectl apply -f k8s/alertmanager/
-
-# 4. Additional shared resources
-kubectl apply -f k8s/shared/ingress.yaml
-kubectl apply -f k8s/shared/tls-certificates.yaml
-```
-
-### Option 5: Local Development with NodePort
+### Option 3: Local Development with NodePort
 
 For local Kubernetes clusters (minikube, k3s, kind, microk8s), use NodePort
 services to enable external Redis access:
@@ -328,20 +245,6 @@ The system automatically configures:
 - **Info**: Session statistics, cleanup runs
 
 ## Operations
-
-### Monitoring Access
-
-```bash
-# Port forward to access monitoring tools
-kubectl port-forward svc/prometheus-service -n redis-database 9090:9090
-kubectl port-forward svc/grafana-service -n redis-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
-```
-
-Default credentials:
-
-- **Grafana**: admin/admin (change immediately)
-- **Prometheus**: No authentication (use ingress with auth in production)
 
 ### Health Checks
 

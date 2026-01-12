@@ -17,47 +17,26 @@ patterns that ensure compatibility across the entire distributed system.
 
 ## Script Categories
 
-### Core Container Scripts (Standalone Redis)
+### Core Container Scripts
 
-These scripts deploy a **standalone Redis instance** for development:
+These scripts deploy Redis via Helm for development:
 
-- **`deploy-container.sh`** - Deploy standalone Redis instance (uses `k8s/redis/standalone/`)
+- **`deploy-container.sh`** - Deploy Redis via Helm (handles minikube setup, Docker build, Helm install)
 - **`start-container.sh`** - Start Redis deployment
 - **`stop-container.sh`** - Stop Redis deployment (scale to 0)
-- **`cleanup-container.sh`** - Clean up Redis with data preservation options
+- **`cleanup-container.sh`** - Clean up Redis with Helm uninstall and data preservation options
 - **`get-container-status.sh`** - Check Redis health and status
 
 > **Note**: For High Availability (HA) deployment with Redis Sentinel
 > (master + replicas + sentinel), use **Helm with production values**:
 > `helm install redis-database ./helm/redis-database --values ./helm/redis-database/values-production.yaml`
->
-> The HA manifests are available at `k8s/redis/ha/` for manual deployment.
 
 #### Components Managed by Scripts
 
-- Standalone Redis instance (single node with persistent storage)
+- Redis Sentinel HA cluster (master, replicas, sentinel)
 - Token Cleanup CronJob (automated expired OAuth2 token removal)
 - Core RBAC and service accounts
 - Persistent volumes and storage
-
-### Supporting Services Scripts (Monitoring & Security)
-
-These scripts manage auxiliary services that support the core application:
-
-- **`deploy-monitoring.sh`** - Deploy monitoring, alerting, and security
-- **`cleanup-monitoring.sh`** - Clean up monitoring and security components
-
-**Note**: Start/stop operations for monitoring services are not currently
-implemented as separate scripts. Use `kubectl scale` commands directly or
-redeploy as needed.
-
-#### Supporting Components Managed
-
-- **Monitoring Stack**: Prometheus, Grafana, Alertmanager, Redis Exporter
-- **Security Policies**: Network policies, Pod Security Standards
-- **Alerting Rules**: 15+ comprehensive Prometheus alerting rules
-- **TLS Certificates**: Certificate generation and management jobs
-- **Advanced RBAC**: Monitoring and security service accounts
 
 ## Consistent Style Patterns
 
@@ -123,17 +102,11 @@ print_separator "="
 ### Full Deployment Workflow
 
 ```bash
-# 1. Deploy standalone Redis instance
+# Deploy Redis via Helm
 ./scripts/containerManagement/deploy-container.sh
 
-# 2. Deploy monitoring and security
-./scripts/containerManagement/deploy-monitoring.sh
-
-# 3. Verify deployment
+# Verify deployment
 ./scripts/containerManagement/get-container-status.sh
-
-# Check monitoring services manually
-kubectl get pods,svc -n redis-database -l component=monitoring
 ```
 
 ### Maintenance Operations
@@ -147,40 +120,14 @@ kubectl get pods,svc -n redis-database -l component=monitoring
 
 # Restart services
 ./scripts/containerManagement/start-container.sh
-
-# Note: Monitoring services don't have dedicated start/stop scripts
-# Redeploy if needed: ./scripts/containerManagement/deploy-monitoring.sh
 ```
 
 ### Clean Removal
 
 ```bash
-# Remove monitoring services first (proper dependency order)
-./scripts/containerManagement/cleanup-monitoring.sh
-
-# Remove core Redis cluster
+# Remove Redis cluster
 ./scripts/containerManagement/cleanup-container.sh
 ```
-
-## Script Dependencies and Ordering
-
-### Deployment Order (Critical)
-
-1. **Core First**: `deploy-container.sh` must run before monitoring services
-2. **Monitoring Second**: `deploy-monitoring.sh` depends on Redis cluster existing
-3. **Verification Last**: Status checks can run independently after deployment
-
-### Cleanup Order (Critical)
-
-1. **Monitoring First**: `cleanup-monitoring.sh` removes monitoring of Redis
-2. **Core Last**: `cleanup-container.sh` removes the Redis cluster being monitored
-
-### Start/Stop Order
-
-- **Start**: Core containers first, then monitoring services (if using
-  separate deployments)
-- **Stop**: Core containers can be stopped independently; monitoring services
-  typically remain running
 
 ## Environment Variable Handling
 
@@ -215,23 +162,12 @@ fi
 
 ## Status and Health Checking
 
-### Core Status Checks (Standalone Mode)
+### Core Status Checks
 
 - Redis instance availability
+- Redis replica count, replication lag, and Sentinel quorum status
 - Session cleanup job execution history
 - Persistent volume availability and usage
-
-> **Note**: For HA deployments (via Helm), additional checks apply:
-> Redis replica count, replication lag, and Sentinel quorum status.
-
-### Supporting Services Status Checks
-
-- Prometheus scrape target health
-- Grafana dashboard availability
-- Alertmanager rule evaluation and firing
-- Network policy enforcement
-- TLS certificate validity
-- Monitoring RBAC permissions
 
 ## Error Handling and Recovery
 
@@ -282,7 +218,6 @@ These scripts are designed for easy migration to a centralized SystemManagement 
 ```bash
 # Quick development setup
 ./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-monitoring.sh
 
 # Check everything is working
 ./scripts/containerManagement/get-container-status.sh
@@ -291,18 +226,12 @@ kubectl get pods,svc -n redis-database
 
 ### Production Deployment
 
+For production, use Helm directly:
+
 ```bash
-# Ensure environment is configured
-cp .env.example .env
-# Edit .env with production passwords
-
-# Deploy with validation
-./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-monitoring.sh
-
-# Verify deployment
-./scripts/containerManagement/get-container-status.sh
-kubectl get pods,svc -n redis-database -l component=monitoring
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace \
+  --values ./helm/redis-database/values-production.yaml
 ```
 
 ### Troubleshooting
@@ -310,9 +239,6 @@ kubectl get pods,svc -n redis-database -l component=monitoring
 ```bash
 # Check status of all components
 ./scripts/containerManagement/get-container-status.sh
-
-# Check monitoring services
-kubectl get pods,svc -n redis-database -l component=monitoring
 
 # Common troubleshooting
 kubectl get pods -n redis-database

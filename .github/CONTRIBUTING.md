@@ -102,11 +102,9 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ### Running Tests
 
 ```bash
-# Validate Kubernetes manifests
-kubectl apply --dry-run=client -f k8s/
-
 # Validate Helm chart
 helm lint ./helm/redis-database
+helm template redis-database ./helm/redis-database --debug
 
 # Run pre-commit hooks (includes shellcheck, yamllint, etc.)
 pre-commit run --all-files
@@ -118,7 +116,6 @@ pre-commit run --all-files
 
 ### Test Guidelines
 
-- Test all Kubernetes manifest changes with dry-run
 - Validate Helm chart changes with `helm lint`
 - Test scripts with shellcheck
 - Verify YAML with yamllint
@@ -260,15 +257,11 @@ redis-database/
 │   ├── ISSUE_TEMPLATE/   # Issue templates
 │   └── DISCUSSION_TEMPLATE/ # Discussion templates
 ├── helm/                 # Helm charts
-│   └── redis-database/
-├── k8s/                  # Kubernetes manifests
-│   ├── redis/           # Redis deployments
-│   ├── prometheus/      # Monitoring
-│   └── grafana/         # Dashboards
+│   └── redis-database/   # Main Helm chart
 ├── scripts/             # Automation scripts
 │   ├── containerManagement/
-│   └── dbManagement/
-├── config/              # Configuration files
+│   ├── dbManagement/
+│   └── lib/             # Shared utilities
 ├── redis/               # Redis configurations
 └── docs/                # Documentation
 ```

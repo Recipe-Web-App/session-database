@@ -19,11 +19,9 @@ pre-commit install && pre-commit install --hook-type commit-msg
 pre-commit run --all-files
 
 # Individual tools
-yamllint k8s/
 shellcheck scripts/**/*.sh
 helm lint ./helm/redis-database
 helm template ./helm/redis-database  # Validate Helm templates
-kube-score score k8s/**/*.yaml --exclude-templates
 
 # Security scanning
 gitleaks detect --source .
@@ -44,20 +42,16 @@ helm install redis-database ./helm/redis-database \
   --namespace redis-database --create-namespace \
   --values ./helm/redis-database/values-production.yaml
 
-# GitOps with ArgoCD
-kubectl apply -f k8s/argocd/application.yaml
 ```
 
 ### Script-based (Development)
 
 ```bash
-./scripts/containerManagement/deploy-container.sh      # Deploy Redis HA
-./scripts/containerManagement/deploy-monitoring.sh     # Deploy monitoring
+./scripts/containerManagement/deploy-container.sh      # Deploy Redis via Helm
 ./scripts/containerManagement/get-container-status.sh  # Check status
 ./scripts/containerManagement/stop-container.sh        # Stop for maintenance
 ./scripts/containerManagement/start-container.sh       # Resume
 ./scripts/containerManagement/cleanup-container.sh     # Remove Redis
-./scripts/containerManagement/cleanup-monitoring.sh    # Remove monitoring
 ```
 
 ### External Access (NodePort)
@@ -124,15 +118,6 @@ kubectl exec -it deployment/redis-sentinel -n redis-database -- \
   redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
 ```
 
-## Monitoring
-
-```bash
-# Port-forward for local access
-kubectl port-forward svc/prometheus-service -n redis-database 9090:9090
-kubectl port-forward svc/grafana-service -n redis-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
-```
-
 ## Architecture
 
 ### Deployment Modes
@@ -145,7 +130,6 @@ kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093
 
 - **Redis Sentinel HA**: Master + 2+ replicas + 3 Sentinel instances
 - **Multi-Database**: 7 service databases (see Database Operations)
-- **Monitoring**: Prometheus, Grafana, Alertmanager, Redis Exporter
 - **Security**: Network policies, TLS, ACL authentication, Pod Security Standards
 - **Automated Ops**: TTL-based key expiration, HPA
 

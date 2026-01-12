@@ -8,9 +8,6 @@ ci:
   autoupdate_branch: ''
   autoupdate_commit_msg: 'chore(pre-commit-ci): pre-commit autoupdate'
   autoupdate_schedule: weekly
-  skip:
-    # Skip local hooks - require system dependencies not available in CI
-    - kube-score
   submodules: false
 
 repos:
@@ -89,13 +86,3 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: [--strict, --verbose]
-
-  - repo: local
-    hooks:
-      - id: kube-score
-        name: kube-score
-        entry: sh -c 'find k8s -name "*.yaml" -type f -not -path "*/templates/*" -not -name "*-template.yaml" | xargs kube-score score'
-        language: system
-        files: k8s/.*\.yaml$
-        pass_filenames: false
-        args: []

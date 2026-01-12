@@ -140,15 +140,10 @@ helm install redis-database ./helm/redis-database \
 
 **Q: How do I enable monitoring?**
 
-A: Monitoring is enabled by default. Access:
+A: For production monitoring, we recommend using external monitoring stacks:
 
-```bash
-# Prometheus
-kubectl port-forward svc/prometheus-service 9090:9090
-
-# Grafana
-kubectl port-forward svc/grafana-service 3000:3000
-```
+- **kube-prometheus-stack**: Comprehensive Kubernetes monitoring via Helm
+- **Datadog/New Relic**: Cloud-native monitoring solutions
 
 ### Troubleshooting
 
@@ -204,11 +199,9 @@ A: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Quick steps:
 A:
 
 ```bash
-# Validate Kubernetes manifests
-kubectl apply --dry-run=client -f k8s/
-
 # Validate Helm chart
 helm lint ./helm/redis-database
+helm template redis-database ./helm/redis-database --debug
 
 # Run pre-commit hooks
 pre-commit run --all-files

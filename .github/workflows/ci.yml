@@ -44,8 +44,8 @@ jobs:
       - name: Run pre-commit hooks
         run: pre-commit run --all-files
 
-  k8s-validation:
-    name: Kubernetes Validation
+  helm-validation:
+    name: Helm Chart Validation
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,16 +53,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Validate Kubernetes manifests
-        run: |
-          kubectl apply --dry-run=client -f k8s/ --recursive
-          echo "✅ Kubernetes manifests are valid"
 
       - name: Install Helm
         uses: azure/setup-helm@v4

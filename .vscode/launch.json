@@ -1,0 +1,160 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ========================================================================
+    // BASH SCRIPT DEBUGGING
+    // ========================================================================
+    {
+      "name": "Debug: Current Bash Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Deploy Container Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/containerManagement/deploy-container.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Cleanup Container Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/containerManagement/cleanup-container.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Get Container Status Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/containerManagement/get-container-status.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Redis Connect Script (DB 0)",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dbManagement/redis-connect.sh",
+      "args": ["0"],
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Backup Auth Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dbManagement/backup-auth.sh",
+      "args": ["all"],
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Session Health Check Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/jobHelpers/session-health-check.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Session Cleanup Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/jobHelpers/session-cleanup.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+    {
+      "name": "Debug: Deploy Monitoring Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/containerManagement/deploy-monitoring.sh",
+      "cwd": "${workspaceFolder}",
+      "terminalKind": "integrated",
+      "env": {},
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true,
+      "trace": false
+    },
+
+    // ========================================================================
+    // BASH ATTACH DEBUGGING
+    // ========================================================================
+    {
+      "name": "Attach: Bash Script",
+      "type": "bashdb",
+      "request": "attach",
+      "cwd": "${workspaceFolder}",
+      "pathBash": "/bin/bash",
+      "pathBashdb": "/usr/share/bashdb/bashdb",
+      "pathBashdbLib": "/usr/share/bashdb",
+      "showDebugOutput": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Deploy Full Stack",
+      "configurations": [
+        "Debug: Deploy Container Script",
+        "Debug: Deploy Monitoring Script"
+      ],
+      "stopAll": true
+    }
+  ]
+}

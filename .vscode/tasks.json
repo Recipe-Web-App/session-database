@@ -1,0 +1,673 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ========================================================================
+    // PRE-COMMIT VALIDATION
+    // ========================================================================
+    {
+      "label": "Pre-commit: Run All Hooks",
+      "type": "shell",
+      "command": "pre-commit run --all-files",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pre-commit: Run on Staged Files",
+      "type": "shell",
+      "command": "pre-commit run",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pre-commit: Install Hooks",
+      "type": "shell",
+      "command": "pre-commit install && pre-commit install --hook-type commit-msg",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // HELM TASKS
+    // ========================================================================
+    {
+      "label": "Helm: Lint Chart",
+      "type": "shell",
+      "command": "helm lint ./helm/redis-database",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Template (Default Values)",
+      "type": "shell",
+      "command": "helm template redis-database ./helm/redis-database",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Template (Production Values)",
+      "type": "shell",
+      "command": "helm template redis-database ./helm/redis-database --values ./helm/redis-database/values-production.yaml",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Template (Local Values)",
+      "type": "shell",
+      "command": "helm template redis-database ./helm/redis-database --values ./helm/redis-database/values-local.yaml",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Dry Run Install",
+      "type": "shell",
+      "command": "helm install redis-database ./helm/redis-database --namespace redis-database --create-namespace --dry-run --debug",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Install (Development)",
+      "type": "shell",
+      "command": "helm install redis-database ./helm/redis-database --namespace redis-database --create-namespace",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Install (Production HA)",
+      "type": "shell",
+      "command": "helm install redis-database ./helm/redis-database --namespace redis-database --create-namespace --values ./helm/redis-database/values-production.yaml",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Upgrade",
+      "type": "shell",
+      "command": "helm upgrade redis-database ./helm/redis-database --namespace redis-database",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Helm: Uninstall",
+      "type": "shell",
+      "command": "helm uninstall redis-database --namespace redis-database",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // INDIVIDUAL LINTERS
+    // ========================================================================
+    {
+      "label": "Lint: ShellCheck All Scripts",
+      "type": "shell",
+      "command": "shellcheck scripts/**/*.sh redis/init/scripts/*.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$shellcheck"
+    },
+    {
+      "label": "Lint: ShellCheck Current File",
+      "type": "shell",
+      "command": "shellcheck ${file}",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$shellcheck"
+    },
+    {
+      "label": "Lint: yamllint All Files",
+      "type": "shell",
+      "command": "yamllint .",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: yamllint Current File",
+      "type": "shell",
+      "command": "yamllint ${file}",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: Hadolint Dockerfile",
+      "type": "shell",
+      "command": "hadolint Dockerfile",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: Markdownlint All Files",
+      "type": "shell",
+      "command": "markdownlint '**/*.md' --ignore node_modules --ignore .venv",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // SECURITY SCANNING
+    // ========================================================================
+    {
+      "label": "Security: Gitleaks Detect",
+      "type": "shell",
+      "command": "gitleaks detect --source .",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Security: Trivy Filesystem Scan",
+      "type": "shell",
+      "command": "trivy fs --severity HIGH,CRITICAL .",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Security: Trivy Docker Image Scan",
+      "type": "shell",
+      "command": "trivy image redis-database:latest",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Security: Kube-score Validate",
+      "type": "shell",
+      "command": "helm template redis-database ./helm/redis-database | kube-score score -",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // CONTAINER MANAGEMENT SCRIPTS
+    // ========================================================================
+    {
+      "label": "Container: Deploy Redis",
+      "type": "shell",
+      "command": "./scripts/containerManagement/deploy-container.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Deploy Monitoring",
+      "type": "shell",
+      "command": "./scripts/containerManagement/deploy-monitoring.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Get Status",
+      "type": "shell",
+      "command": "./scripts/containerManagement/get-container-status.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Start",
+      "type": "shell",
+      "command": "./scripts/containerManagement/start-container.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Stop",
+      "type": "shell",
+      "command": "./scripts/containerManagement/stop-container.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Cleanup Redis",
+      "type": "shell",
+      "command": "./scripts/containerManagement/cleanup-container.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Container: Cleanup Monitoring",
+      "type": "shell",
+      "command": "./scripts/containerManagement/cleanup-monitoring.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // DATABASE MANAGEMENT SCRIPTS
+    // ========================================================================
+    {
+      "label": "DB: Connect to Auth (DB 0)",
+      "type": "shell",
+      "command": "./scripts/dbManagement/auth-connect.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "DB: Connect to Cache (DB 1)",
+      "type": "shell",
+      "command": "./scripts/dbManagement/cache-connect.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "DB: Connect to Redis (Select DB)",
+      "type": "shell",
+      "command": "./scripts/dbManagement/redis-connect.sh ${input:databaseNumber}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "DB: Connect to Service",
+      "type": "shell",
+      "command": "./scripts/dbManagement/service-connect.sh ${input:serviceName}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "DB: Backup All",
+      "type": "shell",
+      "command": "./scripts/dbManagement/backup-auth.sh all",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Backup Auth Only",
+      "type": "shell",
+      "command": "./scripts/dbManagement/backup-auth.sh auth",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Backup Cache Only",
+      "type": "shell",
+      "command": "./scripts/dbManagement/backup-auth.sh cache",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Show Auth Info",
+      "type": "shell",
+      "command": "./scripts/dbManagement/show-auth-info.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Show Cache Info",
+      "type": "shell",
+      "command": "./scripts/dbManagement/show-cache-info.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Monitor Auth",
+      "type": "shell",
+      "command": "./scripts/dbManagement/monitor-auth.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+
+    // ========================================================================
+    // KUBERNETES COMMANDS
+    // ========================================================================
+    {
+      "label": "K8s: Get All Resources",
+      "type": "shell",
+      "command": "kubectl get pods,svc,pvc,configmap,secret -n redis-database",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "K8s: Get Pod Logs",
+      "type": "shell",
+      "command": "kubectl logs -n redis-database -l app.kubernetes.io/name=redis-database --tail=100 -f",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "K8s: Describe Pods",
+      "type": "shell",
+      "command": "kubectl describe pods -n redis-database -l app.kubernetes.io/name=redis-database",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "K8s: Port Forward Prometheus (9090)",
+      "type": "shell",
+      "command": "kubectl port-forward svc/prometheus-service -n redis-database 9090:9090",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "K8s: Port Forward Grafana (3000)",
+      "type": "shell",
+      "command": "kubectl port-forward svc/grafana-service -n redis-database 3000:3000",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "K8s: Port Forward Alertmanager (9093)",
+      "type": "shell",
+      "command": "kubectl port-forward svc/alertmanager-service -n redis-database 9093:9093",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+
+    // ========================================================================
+    // DOCKER TASKS
+    // ========================================================================
+    {
+      "label": "Docker: Build Image",
+      "type": "shell",
+      "command": "eval $(minikube docker-env) && docker build -t redis-database:latest .",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Compose Up",
+      "type": "shell",
+      "command": "docker-compose up -d",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Compose Down",
+      "type": "shell",
+      "command": "docker-compose down",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+
+    // ========================================================================
+    // FORMAT TASKS
+    // ========================================================================
+    {
+      "label": "Format: Beautysh All Scripts",
+      "type": "shell",
+      "command": "beautysh --indent-size 2 scripts/**/*.sh redis/init/scripts/*.sh",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format: Prettier Markdown",
+      "type": "shell",
+      "command": "prettier --write '**/*.md'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "databaseNumber",
+      "description": "Select Redis database number",
+      "type": "pickString",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "default": "0"
+    },
+    {
+      "id": "serviceName",
+      "description": "Select service to connect",
+      "type": "pickString",
+      "options": [
+        "auth",
+        "scraper-cache",
+        "scraper-queue",
+        "scraper-ratelimit",
+        "user",
+        "notification",
+        "mealplan"
+      ],
+      "default": "auth"
+    }
+  ]
+}

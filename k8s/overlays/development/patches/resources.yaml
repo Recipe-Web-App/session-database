@@ -1,0 +1,55 @@
+# Reduced resources for development/Minikube
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-master
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+              ephemeral-storage: "512Mi"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+              ephemeral-storage: "1Gi"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-replica
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+              ephemeral-storage: "256Mi"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"
+              ephemeral-storage: "512Mi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-database-sentinel
+spec:
+  template:
+    spec:
+      containers:
+        - name: sentinel
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

@@ -19,11 +19,9 @@ pre-commit install && pre-commit install --hook-type commit-msg
 pre-commit run --all-files
 
 # Individual tools
-yamllint k8s/
 shellcheck scripts/**/*.sh
-helm lint ./helm/session-database
-helm template ./helm/session-database  # Validate Helm templates
-kube-score score k8s/**/*.yaml --exclude-templates
+helm lint ./helm/redis-database
+helm template ./helm/redis-database  # Validate Helm templates
 
 # Security scanning
 gitleaks detect --source .
@@ -36,35 +34,31 @@ trivy fs --severity HIGH,CRITICAL .
 
 ```bash
 # Development
-helm install session-database ./helm/session-database \
-  --namespace session-database --create-namespace
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace
 
 # Production with HA
-helm install session-database ./helm/session-database \
-  --namespace session-database --create-namespace \
-  --values ./helm/session-database/values-production.yaml
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace \
+  --values ./helm/redis-database/values-production.yaml
 
-# GitOps with ArgoCD
-kubectl apply -f k8s/argocd/application.yaml
 ```
 
 ### Script-based (Development)
 
 ```bash
-./scripts/containerManagement/deploy-container.sh      # Deploy Redis HA
-./scripts/containerManagement/deploy-monitoring.sh     # Deploy monitoring
+./scripts/containerManagement/deploy-container.sh      # Deploy Redis via Helm
 ./scripts/containerManagement/get-container-status.sh  # Check status
 ./scripts/containerManagement/stop-container.sh        # Stop for maintenance
 ./scripts/containerManagement/start-container.sh       # Resume
 ./scripts/containerManagement/cleanup-container.sh     # Remove Redis
-./scripts/containerManagement/cleanup-monitoring.sh    # Remove monitoring
 ```
 
 ### External Access (NodePort)
 
 ```bash
 # Access via hostname (after deploy-container.sh configures /etc/hosts)
-redis-cli -h session-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+redis-cli -h redis-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
 ```
 
 NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
@@ -72,39 +66,56 @@ NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
 
 ## Database Operations
 
+### Service Databases
+
+| DB  | Service           | Description                  |
+| --- | ----------------- | ---------------------------- |
+| 0   | auth              | OAuth2 authentication        |
+| 1   | scraper-cache     | Recipe scraper cache         |
+| 2   | scraper-queue     | Recipe scraper queue         |
+| 3   | scraper-ratelimit | Recipe scraper rate limiting |
+| 4   | user              | User management              |
+| 5   | notification      | Notification service         |
+| 6   | mealplan          | Meal plan management         |
+
+### Management Scripts
+
 ```bash
-# Connect to Auth DB (0)
-kubectl exec -it deployment/session-database -n session-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 0
+# Interactive connection by service name
+./scripts/dbManagement/service-connect.sh auth
+./scripts/dbManagement/service-connect.sh scraper-cache
 
-# Connect to Cache DB (1)
-kubectl exec -it deployment/session-database -n session-database -- \
-  redis-cli -a $REDIS_PASSWORD -n 1
+# View service info (summary or detailed)
+./scripts/dbManagement/service-info.sh                   # All services summary
+./scripts/dbManagement/service-info.sh auth              # Single service summary
+./scripts/dbManagement/service-info.sh auth --detailed   # Full key inspection
 
+# Monitor services
+./scripts/dbManagement/service-monitor.sh                # All services health
+./scripts/dbManagement/service-monitor.sh auth           # Single service metrics
+./scripts/dbManagement/service-monitor.sh --watch        # Continuous monitoring
+
+# Backup databases
+./scripts/dbManagement/db-backup.sh                      # Backup all services
+./scripts/dbManagement/db-backup.sh auth                 # Backup single service
+./scripts/dbManagement/db-backup.sh auth scraper-cache   # Backup multiple
+
+# Restore from backup
+./scripts/dbManagement/db-restore.sh backups/file.json              # Full restore
+./scripts/dbManagement/db-restore.sh backups/file.json --service auth  # Single service
+./scripts/dbManagement/db-restore.sh backups/file.json --dry-run    # Preview only
+```
+
+### Direct kubectl Access
+
+```bash
 # HA mode - connect to master
-kubectl exec -it deployment/redis-master -n session-database -- \
+kubectl exec -it deployment/redis-master -n redis-database -- \
   redis-cli -a $REDIS_PASSWORD -n 0
 
 # Check Sentinel status
-kubectl exec -it deployment/redis-sentinel -n session-database -- \
+kubectl exec -it deployment/redis-sentinel -n redis-database -- \
   redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
-
-# Helper scripts
-./scripts/dbManagement/redis-connect.sh [0|1]  # Interactive connection
-./scripts/dbManagement/auth-connect.sh         # Auth DB with utilities
-./scripts/dbManagement/cache-connect.sh        # Cache DB with utilities
-./scripts/dbManagement/backup-auth.sh [all|auth|cache]
-./scripts/dbManagement/show-auth-info.sh       # Auth service info
-./scripts/jobHelpers/session-health-check.sh   # Health check
-```
-
-## Monitoring
-
-```bash
-# Port-forward for local access
-kubectl port-forward svc/prometheus-service -n session-database 9090:9090
-kubectl port-forward svc/grafana-service -n session-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 ```
 
 ## Architecture
@@ -118,10 +129,9 @@ kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
 ### Core Components
 
 - **Redis Sentinel HA**: Master + 2+ replicas + 3 Sentinel instances
-- **Multi-Database**: DB 0 (OAuth2 auth), DB 1 (service cache)
-- **Monitoring**: Prometheus, Grafana, Alertmanager, Redis Exporter
+- **Multi-Database**: 7 service databases (see Database Operations)
 - **Security**: Network policies, TLS, ACL authentication, Pod Security Standards
-- **Automated Ops**: Token cleanup CronJob (5 min), cache cleanup (10 min), HPA
+- **Automated Ops**: TTL-based key expiration, HPA
 
 ### Data Model
 
@@ -159,16 +169,16 @@ feat!: breaking change          # Major version bump
 
 ```bash
 # Check cluster health
-kubectl get pods,svc,pvc -n session-database
+kubectl get pods,svc,pvc -n redis-database
 
 # View logs
-kubectl logs -n session-database -l app.kubernetes.io/name=session-database --tail=100
+kubectl logs -n redis-database -l app.kubernetes.io/name=redis-database --tail=100
 
 # Check Sentinel
 kubectl exec -it redis-sentinel-xxx -- redis-cli -p 26379 sentinel masters
 
 # Monitor cleanup jobs
-kubectl logs -n session-database -l component=maintenance -f
+kubectl logs -n redis-database -l component=maintenance -f
 
 # Script-based status
 ./scripts/containerManagement/get-container-status.sh

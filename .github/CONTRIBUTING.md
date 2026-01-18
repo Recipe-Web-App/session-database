@@ -22,8 +22,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 1. **Fork and clone the repository**
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/session-database.git
-   cd session-database
+   git clone https://github.com/YOUR_USERNAME/redis-database.git
+   cd redis-database
    ```
 
 2. **Install pre-commit hooks**
@@ -56,7 +56,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
    ./scripts/containerManagement/deploy-container.sh
 
    # Or using Helm
-   helm install session-database ./helm/session-database
+   helm install redis-database ./helm/redis-database
    ```
 
 ## Development Workflow
@@ -102,11 +102,9 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ### Running Tests
 
 ```bash
-# Validate Kubernetes manifests
-kubectl apply --dry-run=client -f k8s/
-
 # Validate Helm chart
-helm lint ./helm/session-database
+helm lint ./helm/redis-database
+helm template redis-database ./helm/redis-database --debug
 
 # Run pre-commit hooks (includes shellcheck, yamllint, etc.)
 pre-commit run --all-files
@@ -118,7 +116,6 @@ pre-commit run --all-files
 
 ### Test Guidelines
 
-- Test all Kubernetes manifest changes with dry-run
 - Validate Helm chart changes with `helm lint`
 - Test scripts with shellcheck
 - Verify YAML with yamllint
@@ -139,7 +136,7 @@ pre-commit run --all-files
 set -euo pipefail
 
 function deploy_redis() {
-    local namespace="${1:-session-database}"
+    local namespace="${1:-redis-database}"
     # Function implementation
 }
 ```
@@ -239,7 +236,7 @@ BREAKING CHANGE: Redis ACL configuration now required
 
 Report security issues through:
 
-- [GitHub Security Advisories](https://github.com/Recipe-Web-App/session-database/security/advisories/new)
+- [GitHub Security Advisories](https://github.com/Recipe-Web-App/redis-database/security/advisories/new)
 
 See [SECURITY.md](SECURITY.md) for details.
 
@@ -254,22 +251,17 @@ See [SECURITY.md](SECURITY.md) for details.
 ## Project Structure
 
 ```text
-session-database/
+redis-database/
 ├── .github/              # GitHub configuration
 │   ├── workflows/        # CI/CD workflows
 │   ├── ISSUE_TEMPLATE/   # Issue templates
 │   └── DISCUSSION_TEMPLATE/ # Discussion templates
 ├── helm/                 # Helm charts
-│   └── session-database/
-├── k8s/                  # Kubernetes manifests
-│   ├── redis/           # Redis deployments
-│   ├── prometheus/      # Monitoring
-│   └── grafana/         # Dashboards
+│   └── redis-database/   # Main Helm chart
 ├── scripts/             # Automation scripts
 │   ├── containerManagement/
 │   ├── dbManagement/
-│   └── jobHelpers/
-├── config/              # Configuration files
+│   └── lib/             # Shared utilities
 ├── redis/               # Redis configurations
 └── docs/                # Documentation
 ```
@@ -277,7 +269,7 @@ session-database/
 ## Questions or Help?
 
 - **Documentation**: Check [README.md](../README.md) and [SUPPORT.md](SUPPORT.md)
-- **Discussions**: Use [GitHub Discussions](https://github.com/Recipe-Web-App/session-database/discussions)
-- **Issues**: Search existing [issues](https://github.com/Recipe-Web-App/session-database/issues)
+- **Discussions**: Use [GitHub Discussions](https://github.com/Recipe-Web-App/redis-database/discussions)
+- **Issues**: Search existing [issues](https://github.com/Recipe-Web-App/redis-database/issues)
 
 Thank you for contributing! 🎉

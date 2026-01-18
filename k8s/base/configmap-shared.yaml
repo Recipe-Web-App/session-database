@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-database-config
+  labels:
+    app.kubernetes.io/name: redis-database
+data:
+  REDIS_HOST: redis-database-master-service
+  REDIS_PORT: "6379"
+  # Service database assignments
+  AUTH_DB: "0"
+  SCRAPER_CACHE_DB: "1"
+  SCRAPER_QUEUE_DB: "2"
+  SCRAPER_RATELIMIT_DB: "3"
+  USER_DB: "4"
+  NOTIFICATION_DB: "5"
+  MEALPLAN_DB: "6"
+  # Service TTL configurations
+  AUTH_SESSION_TTL: "3600"
+  AUTH_ACCESS_TOKEN_TTL: "900"
+  AUTH_REFRESH_TOKEN_TTL: "604800"
+  SCRAPER_CACHE_TTL: "86400"
+  USER_CACHE_TTL: "3600"
+  # Service database map (JSON for application consumption)
+  SERVICE_DB_MAP: |
+    {
+      "auth": 0,
+      "scraper-cache": 1,
+      "scraper-queue": 2,
+      "scraper-ratelimit": 3,
+      "user-management": 4,
+      "notification": 5,
+      "meal-plan": 6
+    }
+  LOG_LEVEL: "INFO"

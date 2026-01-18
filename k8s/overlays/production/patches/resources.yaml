@@ -1,0 +1,55 @@
+# Production resources
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-master
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2000m"
+              ephemeral-storage: "10Gi"
+            limits:
+              memory: "8Gi"
+              cpu: "4000m"
+              ephemeral-storage: "20Gi"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-replica
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+              ephemeral-storage: "5Gi"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+              ephemeral-storage: "10Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-database-sentinel
+spec:
+  template:
+    spec:
+      containers:
+        - name: sentinel
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

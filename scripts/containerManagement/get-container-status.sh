@@ -3,9 +3,9 @@
 
 set -euo pipefail
 
-NAMESPACE="session-database"
-DEPLOYMENT="session-database"
-SERVICE="session-database"
+NAMESPACE="redis-database"
+DEPLOYMENT="redis-database"
+SERVICE="redis-database"
 
 # Fixes bug where first separator line does not fill the terminal width
 COLUMNS=$(tput cols 2>/dev/null || echo 80)

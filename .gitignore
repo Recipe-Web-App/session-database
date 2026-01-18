@@ -1,6 +1,11 @@
-# Environment files
+# Environment files (root level)
 .env*
 !.env.example
+
+# Environment files (env/ directory)
+env/.env.local
+env/.env.production
+!env/.env.production.example
 
 # Temporary files
 tmp/
@@ -35,10 +40,17 @@ wheels/
 *.egg
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo
+
+# Serena
+.serena/
 
 # OS
 .DS_Store

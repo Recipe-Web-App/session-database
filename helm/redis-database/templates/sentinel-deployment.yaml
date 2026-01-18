@@ -1,0 +1,113 @@
+{{- /*
+Redis Sentinel Deployment - Only deployed when Sentinel HA is enabled
+*/ -}}
+{{- if .Values.ha.sentinel.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "redis-database.fullname" . }}-sentinel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.sentinelLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.ha.sentinel.replicas }}
+  selector:
+    matchLabels:
+      {{- include "redis-database.sentinelSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis-database.sentinelLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- if .Values.security.serviceAccount.create }}
+      serviceAccountName: {{ include "redis-database.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.security.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- include "redis-database.securityContext" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: sentinel
+          image: {{ include "redis-database.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "redis-database.containerSecurityContext" . | nindent 10 }}
+          ports:
+            - name: sentinel
+              containerPort: 26379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: redis-password
+            - name: SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: sentinel-password
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Create writable config directory
+              mkdir -p /tmp/sentinel
+              # Substitute environment variables in config
+              envsubst < /etc/redis/sentinel.conf > /tmp/sentinel/sentinel.conf
+              redis-sentinel /tmp/sentinel/sentinel.conf
+          volumeMounts:
+            - name: config
+              mountPath: /etc/redis/sentinel.conf
+              subPath: sentinel.conf
+            - name: logs
+              mountPath: /var/log/redis
+          resources:
+            {{- toYaml .Values.ha.sentinel.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -p
+                - "26379"
+                - -a
+                - $(SENTINEL_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -p
+                - "26379"
+                - -a
+                - $(SENTINEL_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "redis-database.fullname" . }}-sentinel-config
+        - name: logs
+          emptyDir: {}
+{{- end }}

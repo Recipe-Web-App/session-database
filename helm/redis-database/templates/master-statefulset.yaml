@@ -1,0 +1,172 @@
+{{- /*
+Redis Master StatefulSet
+*/ -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis-database.fullname" . }}-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.masterLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "redis-database.fullname" . }}-headless
+  replicas: {{ .Values.ha.master.replicas }}
+  selector:
+    matchLabels:
+      {{- include "redis-database.masterSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis-database.masterLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- if .Values.security.serviceAccount.create }}
+      serviceAccountName: {{ include "redis-database.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.security.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- include "redis-database.securityContext" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: {{ include "redis-database.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "redis-database.containerSecurityContext" . | nindent 10 }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: redis-password
+            {{- if .Values.redis.acl.enabled }}
+            - name: REDIS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: redis-password
+            - name: AUTH_SERVICE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: auth-service-password
+            - name: SCRAPER_SERVICE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: scraper-service-password
+            - name: USER_SERVICE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: user-service-password
+            - name: NOTIFICATION_SERVICE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: notification-service-password
+            - name: MEALPLAN_SERVICE_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: mealplan-service-password
+            {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              {{- if .Values.redis.acl.enabled }}
+              # Substitute environment variables in ACL file
+              envsubst < /etc/redis/users.acl > /tmp/users.acl
+              cp /tmp/users.acl /data/users.acl
+              {{- end }}
+              # Substitute environment variables in config
+              envsubst < /etc/redis/redis.conf > /tmp/redis.conf
+              redis-server /tmp/redis.conf
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis/redis.conf
+              subPath: redis.conf
+            {{- if .Values.redis.acl.enabled }}
+            - name: acl
+              mountPath: /etc/redis/users.acl
+              subPath: users.acl
+            {{- end }}
+            - name: logs
+              mountPath: /var/log/redis
+          resources:
+            {{- toYaml .Values.ha.master.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "redis-database.fullname" . }}-master-config
+        {{- if .Values.redis.acl.enabled }}
+        - name: acl
+          configMap:
+            name: {{ include "redis-database.fullname" . }}-acl
+        {{- end }}
+        - name: logs
+          emptyDir: {}
+        {{- if not .Values.ha.master.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.ha.master.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "redis-database.masterLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.ha.master.persistence.storageClass }}
+        storageClassName: {{ .Values.ha.master.persistence.storageClass }}
+        {{- else if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.ha.master.persistence.size }}
+  {{- end }}

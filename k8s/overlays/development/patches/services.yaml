@@ -1,0 +1,27 @@
+# NodePort for external access in development
+# Fixed ports to avoid reconfiguring dependent services on redeploy
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-database-master-service
+spec:
+  type: NodePort
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+      nodePort: 30379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-database-sentinel-service
+spec:
+  type: NodePort
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: 26379
+      protocol: TCP
+      nodePort: 30380

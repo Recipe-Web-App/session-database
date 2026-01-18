@@ -202,11 +202,11 @@ ha:
       requests:
         memory: "1Gi"
         cpu: "500m"
-        ephemeralStorage: "2Gi"
+        ephemeral-storage: "2Gi"
       limits:
         memory: "2Gi"
         cpu: "1000m"
-        ephemeralStorage: "4Gi"
+        ephemeral-storage: "4Gi"
 
   # Redis Replica configuration
   replica:
@@ -218,11 +218,11 @@ ha:
       requests:
         memory: "512Mi"
         cpu: "250m"
-        ephemeralStorage: "1Gi"
+        ephemeral-storage: "1Gi"
       limits:
         memory: "1Gi"
         cpu: "500m"
-        ephemeralStorage: "2Gi"
+        ephemeral-storage: "2Gi"
 
 # =============================================================================
 # CLEANUP JOB CONFIGURATION

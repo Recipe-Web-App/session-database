@@ -25,7 +25,7 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
-      {{- if .Values.service.nodePort.enabled }}
+      {{- if and .Values.service.nodePort.enabled .Values.service.nodePort.port }}
       nodePort: {{ .Values.service.nodePort.port }}
       {{- end }}
   selector:
@@ -77,7 +77,7 @@ spec:
       port: {{ .Values.service.sentinel.port }}
       targetPort: {{ .Values.service.sentinel.targetPort }}
       protocol: TCP
-      {{- if .Values.service.sentinel.nodePort.enabled }}
+      {{- if and .Values.service.sentinel.nodePort.enabled .Values.service.sentinel.nodePort.port }}
       nodePort: {{ .Values.service.sentinel.nodePort.port }}
       {{- end }}
   selector:

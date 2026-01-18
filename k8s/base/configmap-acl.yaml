@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-database-acl
+  labels:
+    app.kubernetes.io/name: redis-database
+data:
+  users.acl: |
+    user admin on >${REDIS_ADMIN_PASSWORD} ~* &* +@all
+    user auth_user on >${AUTH_SERVICE_REDIS_PASSWORD} ~auth:* &* +@all -@dangerous
+    user scraper_user on >${SCRAPER_SERVICE_REDIS_PASSWORD} ~scraper:* &* +@all -@dangerous
+    user user_user on >${USER_SERVICE_REDIS_PASSWORD} ~user:* &* +@all -@dangerous
+    user notification_user on >${NOTIFICATION_SERVICE_REDIS_PASSWORD} ~notification:* &* +@all -@dangerous
+    user mealplan_user on >${MEALPLAN_SERVICE_REDIS_PASSWORD} ~mealplan:* &* +@all -@dangerous
+    user default off

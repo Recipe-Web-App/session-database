@@ -86,7 +86,7 @@ data:
     requirepass ${REDIS_PASSWORD}
     masterauth ${REDIS_PASSWORD}
     {{- if .Values.redis.acl.enabled }}
-    aclfile /etc/redis/users.acl
+    aclfile /data/users.acl
     {{- end }}
     maxmemory {{ .Values.redis.config.maxmemory }}
     maxmemory-policy {{ .Values.redis.config.maxmemoryPolicy }}
@@ -96,7 +96,7 @@ data:
     rdbchecksum yes
     dbfilename dump.rdb
     dir /data
-    appendonly {{ .Values.redis.config.appendonly }}
+    appendonly {{ if .Values.redis.config.appendonly }}yes{{ else }}no{{ end }}
     appendfilename "appendonly.aof"
     appendfsync everysec
     no-appendfsync-on-rewrite no

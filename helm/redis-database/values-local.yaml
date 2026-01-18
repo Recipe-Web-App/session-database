@@ -25,7 +25,7 @@ service:
   targetPort: 6379
   nodePort:
     enabled: true
-    port: 30379
+    port: null  # auto-allocated by Kubernetes
 
   sentinel:
     type: NodePort
@@ -33,7 +33,7 @@ service:
     targetPort: 26379
     nodePort:
       enabled: true
-      port: 30380
+      port: null  # auto-allocated by Kubernetes
 
 # Reduced HA configuration for local development
 ha:
@@ -57,11 +57,11 @@ ha:
       requests:
         memory: "256Mi"
         cpu: "100m"
-        ephemeralStorage: "512Mi"
+        ephemeral-storage: "512Mi"
       limits:
         memory: "512Mi"
         cpu: "200m"
-        ephemeralStorage: "1Gi"
+        ephemeral-storage: "1Gi"
 
   replica:
     replicas: 1
@@ -71,11 +71,11 @@ ha:
       requests:
         memory: "128Mi"
         cpu: "50m"
-        ephemeralStorage: "256Mi"
+        ephemeral-storage: "256Mi"
       limits:
         memory: "256Mi"
         cpu: "100m"
-        ephemeralStorage: "512Mi"
+        ephemeral-storage: "512Mi"
 
 # Redis authentication for local development
 # NOTE: These are intentional local dev placeholders, not real secrets

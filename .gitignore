@@ -1,6 +1,11 @@
-# Environment files
+# Environment files (root level)
 .env*
 !.env.example
+
+# Environment files (env/ directory)
+env/.env.local
+env/.env.production
+!env/.env.production.example
 
 # Temporary files
 tmp/

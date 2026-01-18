@@ -57,11 +57,11 @@ ha:
       requests:
         memory: "4Gi"
         cpu: "2000m"
-        ephemeralStorage: "10Gi"
+        ephemeral-storage: "10Gi"
       limits:
         memory: "8Gi"
         cpu: "4000m"
-        ephemeralStorage: "20Gi"
+        ephemeral-storage: "20Gi"
 
   replica:
     replicas: 3
@@ -72,11 +72,11 @@ ha:
       requests:
         memory: "2Gi"
         cpu: "1000m"
-        ephemeralStorage: "5Gi"
+        ephemeral-storage: "5Gi"
       limits:
         memory: "4Gi"
         cpu: "2000m"
-        ephemeralStorage: "10Gi"
+        ephemeral-storage: "10Gi"
 
 # Production session management
 sessionManagement:

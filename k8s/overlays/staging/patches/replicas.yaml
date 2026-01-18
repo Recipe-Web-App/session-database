@@ -1,0 +1,21 @@
+# 2 replicas for staging
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-master
+spec:
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-replica
+spec:
+  replicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-database-sentinel
+spec:
+  replicas: 3

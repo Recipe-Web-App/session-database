@@ -92,27 +92,27 @@ redis:
       auth:
         enabled: true
         password: "auth_localdev"  # pragma: allowlist secret
-        keyPattern: "auth:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
       scraper:
         enabled: true
         password: "scraper_localdev"  # pragma: allowlist secret
-        keyPattern: "scraper:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
       user:
         enabled: true
         password: "user_localdev"  # pragma: allowlist secret
-        keyPattern: "user:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
       notification:
         enabled: true
         password: "notification_localdev"  # pragma: allowlist secret
-        keyPattern: "notification:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
       mealplan:
         enabled: true
         password: "mealplan_localdev"  # pragma: allowlist secret
-        keyPattern: "mealplan:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
 
   config:

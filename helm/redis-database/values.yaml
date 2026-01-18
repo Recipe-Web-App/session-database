@@ -116,43 +116,43 @@ redis:
   acl:
     enabled: true
     users:
-      # Auth service user - DB 0, auth:* keys only
+      # Auth service user - DB 0, all keys
       auth:
         enabled: true
         password: "${AUTH_SERVICE_REDIS_PASSWORD}"
-        keyPattern: "auth:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
         database: 0
 
-      # Recipe Scraper user - DBs 1-3, scraper:* keys only
+      # Recipe Scraper user - DBs 1-3, all keys
       scraper:
         enabled: true
         password: "${SCRAPER_SERVICE_REDIS_PASSWORD}"
-        keyPattern: "scraper:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
         databases: [1, 2, 3]
 
-      # User Management user - DB 4, user:* keys only
+      # User Management user - DB 4, all keys
       user:
         enabled: true
         password: "${USER_SERVICE_REDIS_PASSWORD}"
-        keyPattern: "user:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
         database: 4
 
-      # Notification Service user - DB 5, notification:* keys only
+      # Notification Service user - DB 5, all keys
       notification:
         enabled: true
         password: "${NOTIFICATION_SERVICE_REDIS_PASSWORD}"
-        keyPattern: "notification:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
         database: 5
 
-      # Meal Plan user - DB 6, mealplan:* keys only
+      # Meal Plan user - DB 6, all keys
       mealplan:
         enabled: true
         password: "${MEALPLAN_SERVICE_REDIS_PASSWORD}"
-        keyPattern: "mealplan:*"
+        keyPattern: "*"
         commands: "+@all -@dangerous"
         database: 6
 

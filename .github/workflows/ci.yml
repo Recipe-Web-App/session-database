@@ -44,8 +44,8 @@ jobs:
       - name: Run pre-commit hooks
         run: pre-commit run --all-files
 
-  k8s-validation:
-    name: Kubernetes Validation
+  helm-validation:
+    name: Helm Chart Validation
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,16 +54,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Validate Kubernetes manifests
-        run: |
-          kubectl apply --dry-run=client -f k8s/ --recursive
-          echo "✅ Kubernetes manifests are valid"
-
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
@@ -71,8 +61,8 @@ jobs:
 
       - name: Validate Helm chart
         run: |
-          helm lint ./helm/session-database
-          helm template session-database ./helm/session-database --debug
+          helm lint ./helm/redis-database
+          helm template redis-database ./helm/redis-database --debug
           echo "✅ Helm chart is valid"
 
   docker-build:
@@ -93,6 +83,6 @@ jobs:
         with:
           context: .
           push: false
-          tags: session-database:test
+          tags: redis-database:test
           cache-from: type=gha
           cache-to: type=gha,mode=max

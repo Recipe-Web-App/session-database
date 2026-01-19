@@ -1,0 +1,236 @@
+---
+# Production values for redis-database
+# This file contains production-specific overrides
+
+# Image configuration for production
+image:
+  repository: redis-database
+  tag: "stable"
+  pullPolicy: Always
+
+# Production deployment mode with high availability
+deploymentMode: sentinel
+
+# Redis configuration for production
+redis:
+  auth:
+    enabled: true
+    # Passwords should be provided via external secret management in production
+
+  config:
+    maxmemory: "4gb"
+    maxmemoryPolicy: "allkeys-lru"
+    save: "900 1 300 10 60 10000"
+    appendonly: true
+    timeout: 300
+    tcpKeepalive: 300
+
+  tls:
+    enabled: true
+    port: 6380
+
+# High availability configuration for production
+ha:
+  sentinel:
+    enabled: true
+    replicas: 3
+    downAfterMilliseconds: 5000
+    failoverTimeout: 10000
+    parallelSyncs: 1
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+  master:
+    replicas: 1
+    persistence:
+      enabled: true
+      size: "50Gi"
+      storageClass: "fast-ssd"
+
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2000m"
+        ephemeral-storage: "10Gi"
+      limits:
+        memory: "8Gi"
+        cpu: "4000m"
+        ephemeral-storage: "20Gi"
+
+  replica:
+    replicas: 3
+    persistence:
+      enabled: false
+
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+        ephemeral-storage: "5Gi"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+        ephemeral-storage: "10Gi"
+
+# Production session management
+sessionManagement:
+  sessionTTL: 7200  # 2 hours
+  refreshTokenTTL: 1209600  # 14 days
+  maxSessionsPerUser: 10
+  maxRefreshTokensPerUser: 5
+
+  cleanup:
+    enabled: true
+    schedule: "*/2 * * * *"  # Every 2 minutes
+    batchSize: 500
+    maxExecutionTime: 60
+
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+# Enhanced monitoring for production
+monitoring:
+  enabled: true
+
+  prometheus:
+    enabled: true
+    replicas: 2
+    retention: "720h"  # 30 days
+    scrapeInterval: "15s"
+
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+
+    persistence:
+      enabled: true
+      size: "100Gi"
+      storageClass: "fast-ssd"
+
+  grafana:
+    enabled: true
+    replicas: 2
+
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    persistence:
+      enabled: true
+      size: "10Gi"
+
+  alertmanager:
+    enabled: true
+    replicas: 3
+
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+# Enhanced security for production
+security:
+  podSecurityStandards:
+    enabled: true
+    enforce: "restricted"
+
+  networkPolicies:
+    enabled: true
+
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: false
+
+# Production autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70
+
+# Production pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Production affinity rules
+affinity:
+  podAntiAffinity: "required"
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-type
+              operator: In
+              values:
+                - database
+
+# Production tolerations
+tolerations:
+  - key: "database-workload"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Production node selector
+nodeSelector:
+  workload-type: database
+
+# Production service configuration
+service:
+  type: ClusterIP
+  port: 6379
+  targetPort: 6379
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: >-
+      true
+
+# Production ingress for monitoring
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: prometheus.session-db.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: prometheus
+    - host: grafana.session-db.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: grafana
+  tls:
+    - secretName: session-db-monitoring-tls   # pragma: allowlist secret
+      hosts:
+        - prometheus.session-db.example.com
+        - grafana.session-db.example.com

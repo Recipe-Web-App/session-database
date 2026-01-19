@@ -40,7 +40,7 @@ Is it a security vulnerability?
 **Best for:** Questions, ideas, general discussion
 
 Use
-[GitHub Discussions](https://github.com/Recipe-Web-App/session-database/discussions)
+[GitHub Discussions](https://github.com/Recipe-Web-App/redis-database/discussions)
 for:
 
 - **Q&A** - Ask questions about usage, configuration, or troubleshooting
@@ -59,7 +59,7 @@ for:
 
 **Best for:** Bug reports, feature requests, tasks
 
-Use [GitHub Issues](https://github.com/Recipe-Web-App/session-database/issues) for:
+Use [GitHub Issues](https://github.com/Recipe-Web-App/redis-database/issues) for:
 
 - **Bug Reports** - Report unexpected behavior or issues
 - **Feature Requests** - Suggest new features
@@ -71,18 +71,18 @@ Use [GitHub Issues](https://github.com/Recipe-Web-App/session-database/issues) f
 
 We provide structured templates:
 
-- [Bug Report](https://github.com/Recipe-Web-App/session-database/issues/new?template=bug_report.yml)
-- [Feature Request](https://github.com/Recipe-Web-App/session-database/issues/new?template=feature_request.yml)
-- [Performance Issue](https://github.com/Recipe-Web-App/session-database/issues/new?template=performance_issue.yml)
-- [Documentation Issue](https://github.com/Recipe-Web-App/session-database/issues/new?template=documentation.yml)
-- [Security Vulnerability (Low)](https://github.com/Recipe-Web-App/session-database/issues/new?template=security_vulnerability.yml)
+- [Bug Report](https://github.com/Recipe-Web-App/redis-database/issues/new?template=bug_report.yml)
+- [Feature Request](https://github.com/Recipe-Web-App/redis-database/issues/new?template=feature_request.yml)
+- [Performance Issue](https://github.com/Recipe-Web-App/redis-database/issues/new?template=performance_issue.yml)
+- [Documentation Issue](https://github.com/Recipe-Web-App/redis-database/issues/new?template=documentation.yml)
+- [Security Vulnerability (Low)](https://github.com/Recipe-Web-App/redis-database/issues/new?template=security_vulnerability.yml)
 
 ## Security Issues
 
 **For security vulnerabilities:**
 
-- **Critical/High Severity** → Use [GitHub Security Advisories](https://github.com/Recipe-Web-App/session-database/security/advisories/new)
-- **Low Severity** → Use [Security Vulnerability template](https://github.com/Recipe-Web-App/session-database/issues/new?template=security_vulnerability.yml)
+- **Critical/High Severity** → Use [GitHub Security Advisories](https://github.com/Recipe-Web-App/redis-database/security/advisories/new)
+- **Low Severity** → Use [Security Vulnerability template](https://github.com/Recipe-Web-App/redis-database/issues/new?template=security_vulnerability.yml)
 
 See [SECURITY.md](SECURITY.md) for details.
 
@@ -96,7 +96,7 @@ A: See [DEPLOYMENT.md](../docs/DEPLOYMENT.md) for deployment guides. Quick start
 
 ```bash
 # Using Helm (recommended)
-helm install session-database ./helm/session-database
+helm install redis-database ./helm/redis-database
 
 # Using scripts
 ./scripts/containerManagement/deploy-container.sh
@@ -125,7 +125,7 @@ A:
 A: Create a Kubernetes secret:
 
 ```bash
-kubectl create secret generic session-database-secret \
+kubectl create secret generic redis-database-secret \
   --from-literal=redis-password=YOUR_STRONG_PASSWORD
 ```
 
@@ -134,21 +134,16 @@ kubectl create secret generic session-database-secret \
 A: Use the Helm chart with HA values:
 
 ```bash
-helm install session-database ./helm/session-database \
-  --values ./helm/session-database/values-production.yaml
+helm install redis-database ./helm/redis-database \
+  --values ./helm/redis-database/values-production.yaml
 ```
 
 **Q: How do I enable monitoring?**
 
-A: Monitoring is enabled by default. Access:
+A: For production monitoring, we recommend using external monitoring stacks:
 
-```bash
-# Prometheus
-kubectl port-forward svc/prometheus-service 9090:9090
-
-# Grafana
-kubectl port-forward svc/grafana-service 3000:3000
-```
+- **kube-prometheus-stack**: Comprehensive Kubernetes monitoring via Helm
+- **Datadog/New Relic**: Cloud-native monitoring solutions
 
 ### Troubleshooting
 
@@ -157,8 +152,8 @@ kubectl port-forward svc/grafana-service 3000:3000
 A: Check common issues:
 
 1. Verify PVC is bound: `kubectl get pvc`
-2. Check pod logs: `kubectl logs -l app=session-database`
-3. Verify secret exists: `kubectl get secret session-database-secret`
+2. Check pod logs: `kubectl logs -l app=redis-database`
+3. Verify secret exists: `kubectl get secret redis-database-secret`
 4. Check resource availability: `kubectl describe node`
 
 #### Q: Sentinel failover not working
@@ -204,11 +199,9 @@ A: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Quick steps:
 A:
 
 ```bash
-# Validate Kubernetes manifests
-kubectl apply --dry-run=client -f k8s/
-
 # Validate Helm chart
-helm lint ./helm/session-database
+helm lint ./helm/redis-database
+helm template redis-database ./helm/redis-database --debug
 
 # Run pre-commit hooks
 pre-commit run --all-files
@@ -225,7 +218,7 @@ A:
 ./scripts/containerManagement/get-container-status.sh
 
 # Manual check
-kubectl get pods,svc,pvc -n session-database
+kubectl get pods,svc,pvc -n redis-database
 ```
 
 **Q: How do I backup Redis data?**
@@ -328,9 +321,9 @@ Environment:
 
 If you can't find an answer:
 
-1. **Search** [existing issues](https://github.com/Recipe-Web-App/session-database/issues)
-2. **Check** [discussions](https://github.com/Recipe-Web-App/session-database/discussions)
+1. **Search** [existing issues](https://github.com/Recipe-Web-App/redis-database/issues)
+2. **Check** [discussions](https://github.com/Recipe-Web-App/redis-database/discussions)
 3. **Review** [documentation](../README.md)
-4. **Ask** in [Q&A discussions](https://github.com/Recipe-Web-App/session-database/discussions/new?category=q-a)
+4. **Ask** in [Q&A discussions](https://github.com/Recipe-Web-App/redis-database/discussions/new?category=q-a)
 
 Thank you for being part of our community! 🙏

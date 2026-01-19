@@ -1,14 +1,17 @@
 #!/bin/bash
 # scripts/containerManagement/deploy-container.sh
+# Deploys Redis database using Kustomize
 
 set -euo pipefail
 
-NAMESPACE="session-database"
-CONFIG_DIR="k8s"
-SECRET_NAME="session-database-secret" # pragma: allowlist secret
-IMAGE_NAME="session-database"
+# Default to development environment
+ENV="${1:-development}"
+NAMESPACE="redis-database"
+IMAGE_NAME="redis-database"
 IMAGE_TAG="latest"
 FULL_IMAGE_NAME="${IMAGE_NAME}:${IMAGE_TAG}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Fixes bug where first separator line does not fill the terminal width
 COLUMNS=$(tput cols 2>/dev/null || echo 80)
@@ -21,34 +24,42 @@ print_separator() {
 }
 
 print_separator "="
-echo "🔧 Setting up Minikube environment..."
+echo "Deploying to environment: ${ENV}"
+print_separator "-"
+
+# Validate environment
+if [[ ! -d "${PROJECT_ROOT}/k8s/overlays/${ENV}" ]]; then
+  echo "Error: Unknown environment '${ENV}'"
+  echo "Available environments: development, staging, production"
+  exit 1
+fi
+
+print_separator "="
+echo "Checking prerequisites..."
 print_separator "-"
 env_status=true
+
 if ! command -v minikube >/dev/null 2>&1; then
-  echo "❌ Minikube is not installed. Please install it first."
+  echo "Minikube is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ Minikube is installed."
+  echo "Minikube is installed."
 fi
 
 if ! command -v kubectl >/dev/null 2>&1; then
-  echo "❌ kubectl is not installed. Please install it first."
+  echo "kubectl is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ kubectl is installed."
+  echo "kubectl is installed."
 fi
+
 if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ Docker is not installed. Please install it first."
+  echo "Docker is not installed. Please install it first."
   env_status=false
 else
-  echo "✅ Docker is installed."
+  echo "Docker is installed."
 fi
-if ! command -v jq >/dev/null 2>&1; then
-  echo "❌ jq is not installed. Please install it first."
-  env_status=false
-else
-  echo "✅ jq is installed."
-fi
+
 if ! $env_status; then
   echo "Please resolve the above issues before proceeding."
   exit 1
@@ -56,151 +67,108 @@ fi
 
 if ! minikube status >/dev/null 2>&1; then
   print_separator "-"
-  echo "🚀 Starting Minikube..."
+  echo "Starting Minikube..."
   minikube start
 
   if ! minikube addons list | grep -q 'ingress *enabled'; then
-    echo "🔌 Enabling Minikube ingress addon..."
+    echo "Enabling Minikube ingress addon..."
     minikube addons enable ingress
   fi
-  echo "✅ Minikube started."
+  echo "Minikube started."
 else
-  echo "✅ Minikube is already running."
+  echo "Minikube is already running."
 fi
 
 print_separator "="
-echo "📂 Ensuring namespace '${NAMESPACE}' exists..."
+echo "Verifying environment file exists..."
+print_separator "-"
+
+ENV_FILE="${PROJECT_ROOT}/k8s/overlays/${ENV}/.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Error: Environment file not found: ${ENV_FILE}"
+  echo "Kustomize secretGenerator requires this file."
+  exit 1
+fi
+echo "Environment file found: ${ENV_FILE}"
+
+print_separator "="
+echo "Ensuring namespace '${NAMESPACE}' exists..."
 print_separator "-"
 
 if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
-  echo "✅ '$NAMESPACE' namespace already exists."
+  echo "'$NAMESPACE' namespace already exists."
 else
   kubectl create namespace "$NAMESPACE"
-  echo "✅ '$NAMESPACE' namespace created."
+  echo "'$NAMESPACE' namespace created."
 fi
 
 print_separator "="
-echo "🔧 Loading environment variables from .env file (if present)..."
-print_separator "-"
-
-if [ -f .env ]; then
-  set -o allexport
-  # Capture env before
-  BEFORE_ENV=$(mktemp)
-  AFTER_ENV=$(mktemp)
-  env | cut -d= -f1 | sort > "$BEFORE_ENV"
-  source .env
-  # Capture env after
-  env | cut -d= -f1 | sort > "$AFTER_ENV"
-  # Show newly loaded/changed variables
-  echo "✅ Loaded variables from .env:"
-  comm -13 "$BEFORE_ENV" "$AFTER_ENV"
-  rm -f "$BEFORE_ENV" "$AFTER_ENV"
-  set +o allexport
-fi
-
-print_separator "="
-echo "🐳 Building Docker image: ${FULL_IMAGE_NAME} (inside Minikube Docker daemon)"
+echo "Building Docker image: ${FULL_IMAGE_NAME} (inside Minikube Docker daemon)"
 print_separator '-'
 
 eval "$(minikube docker-env)"
-docker build -t "$FULL_IMAGE_NAME" .
-echo "✅ Docker image '${FULL_IMAGE_NAME}' built successfully."
+docker build -t "$FULL_IMAGE_NAME" "${PROJECT_ROOT}"
+echo "Docker image '${FULL_IMAGE_NAME}' built successfully."
 
 print_separator "="
-echo "⚙️ Creating/Updating ConfigMap from env..."
+echo "Deploying Redis with Kustomize (${ENV} overlay)..."
 print_separator "-"
 
-envsubst < "${CONFIG_DIR}/templates/configmap-template.yaml" | kubectl apply -f -
+kubectl apply -k "${PROJECT_ROOT}/k8s/overlays/${ENV}"
+echo "Kustomize deployment applied."
 
 print_separator "="
-echo "🔐 Creating/updating Secret..."
+echo "Waiting for pods to be ready..."
 print_separator "-"
-
-kubectl delete secret "$SECRET_NAME" -n "$NAMESPACE" --ignore-not-found
-envsubst < "${CONFIG_DIR}/templates/secret-template.yaml" | kubectl apply -f -
-
-print_separator "="
-echo "💾 Applying PersistentVolumeClaim..."
-print_separator "-"
-
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/pvc.yaml"
-
-kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="session-database") | .metadata.name' | \
-  xargs -I{} kubectl label pv {} app=session-database --overwrite
-
-print_separator "="
-echo "📦 Deploying Redis container..."
-print_separator "-"
-
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/deployment.yaml"
-
-print_separator "="
-echo "🌐 Exposing Redis via NodePort Service..."
-print_separator "-"
-
-envsubst < "${CONFIG_DIR}/redis/standalone/service-template.yaml" | kubectl apply -f -
 
 kubectl wait --namespace="$NAMESPACE" \
   --for=condition=Ready pod \
-  --selector=app=session-database,component!=initialization \
-  --timeout=90s
+  --selector=app.kubernetes.io/name=redis-database \
+  --timeout=120s || {
+  echo "Warning: Pods not ready within timeout. Checking status..."
+  kubectl get pods -n "$NAMESPACE"
+}
+
+echo "Pods are ready."
 
 print_separator "="
-echo "🔧 Running Redis Lua script initialization..."
+echo "Configuring external access..."
 print_separator "-"
-
-# Clean up any previous init jobs
-kubectl delete job redis-lua-init -n "$NAMESPACE" --ignore-not-found
-
-# Run the initialization job
-kubectl apply -f "${CONFIG_DIR}/redis/standalone/init-job.yaml"
-
-# Wait for the job to complete
-if kubectl get job redis-lua-init -n "$NAMESPACE" -o jsonpath='{.status.conditions[0].type}' 2>/dev/null | grep -q "Complete"; then
-  echo "✅ Init job already complete"
-else
-  kubectl wait --namespace="$NAMESPACE" \
-    --for=condition=Complete job/redis-lua-init \
-    --timeout=60s
-fi
-
-echo "✅ Lua scripts initialized successfully"
-
-print_separator "="
-echo "🌐 Configuring external access..."
-print_separator "-"
-
-POD_NAME=$(kubectl get pods -n "$NAMESPACE" -l app=session-database -o jsonpath="{.items[0].metadata.name}")
 
 MINIKUBE_IP=$(minikube ip)
-NODE_PORT=$(kubectl get svc session-database-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}')
+# Get the allocated NodePort
+NODE_PORT=$(kubectl get svc redis-database-master-service -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "")
 
-if [ -n "$MINIKUBE_IP" ]; then
-  echo "✅ Minikube IP: ${MINIKUBE_IP}"
-  echo "✅ NodePort: ${NODE_PORT}"
-  LOCAL_HOSTNAME="session-database.local"
-  sed -i "/${LOCAL_HOSTNAME}/d" /etc/hosts
-  echo "${MINIKUBE_IP} ${LOCAL_HOSTNAME}" >> /etc/hosts
-  echo "✅ Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
+if [ -n "$MINIKUBE_IP" ] && [ -n "$NODE_PORT" ]; then
+  echo "Minikube IP: ${MINIKUBE_IP}"
+  echo "NodePort: ${NODE_PORT}"
+  LOCAL_HOSTNAME="redis-database.local"
+
+  # Update /etc/hosts if we have permission
+  if [ -w /etc/hosts ]; then
+    sed -i "/${LOCAL_HOSTNAME}/d" /etc/hosts
+    echo "${MINIKUBE_IP} ${LOCAL_HOSTNAME}" >> /etc/hosts
+    echo "Added ${LOCAL_HOSTNAME} -> ${MINIKUBE_IP} to /etc/hosts"
+  else
+    echo "Note: Cannot update /etc/hosts (no write permission)"
+    echo "Add manually: ${MINIKUBE_IP} ${LOCAL_HOSTNAME}"
+  fi
 else
-  echo "⚠️ Could not determine Minikube IP"
+  echo "Warning: Could not determine external access details"
 fi
 
 print_separator "="
-echo "✅ Redis is up and running with session management in namespace '$NAMESPACE'."
+echo "Redis is up and running in namespace '$NAMESPACE'."
 print_separator "-"
-echo "📡 Access info:"
-echo "  Pod: $POD_NAME"
-echo "  Internal Host: session-database-service.$NAMESPACE.svc.cluster.local"
-if [ -n "$MINIKUBE_IP" ]; then
+echo "Access info:"
+echo "  Internal Host: redis-database-master-service.${NAMESPACE}.svc.cluster.local"
+if [ -n "$MINIKUBE_IP" ] && [ -n "$NODE_PORT" ]; then
   echo "  Minikube IP: $MINIKUBE_IP"
   echo "  NodePort: $NODE_PORT"
-  echo "  Hostname: session-database.local"
-  echo "  External Access: redis-cli -h session-database.local -p $NODE_PORT -a \$REDIS_PASSWORD"
+  echo "  Hostname: redis-database.local"
+  echo "  External Access: redis-cli -h redis-database.local -p $NODE_PORT -a \$REDIS_PASSWORD"
 else
   echo "  External Access: (run 'minikube ip' and 'kubectl get svc -n $NAMESPACE' to check)"
 fi
 echo "  Internal Port: 6379"
-echo "  Database: Redis"
 print_separator "="

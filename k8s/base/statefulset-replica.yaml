@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-database-replica
+  labels:
+    app.kubernetes.io/name: redis-database
+    app.kubernetes.io/component: redis-replica
+spec:
+  serviceName: redis-database-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis-database
+      app.kubernetes.io/component: redis-replica
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis-database
+        app.kubernetes.io/component: redis-replica
+    spec:
+      serviceAccountName: redis-database
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis-database:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - SETUID
+                - SETGID
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-database-secret
+                  key: REDIS_PASSWORD
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Substitute environment variables in config
+              envsubst < /etc/redis/redis.conf > /tmp/redis.conf
+              redis-server /tmp/redis.conf
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis/redis.conf
+              subPath: redis.conf
+            - name: logs
+              mountPath: /var/log/redis
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+              ephemeral-storage: "512Mi"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+              ephemeral-storage: "1Gi"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: redis-database-replica-config
+        - name: logs
+          emptyDir: {}
+        - name: data
+          emptyDir: {}

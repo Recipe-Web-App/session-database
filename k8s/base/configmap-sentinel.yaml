@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-database-sentinel-config
+  labels:
+    app.kubernetes.io/name: redis-database
+    app.kubernetes.io/component: redis-sentinel
+data:
+  sentinel.conf: |
+    port 26379
+    sentinel monitor redis-master redis-database-master-service 6379 2
+    sentinel auth-pass redis-master ${REDIS_PASSWORD}
+    sentinel down-after-milliseconds redis-master 5000
+    sentinel parallel-syncs redis-master 1
+    sentinel failover-timeout redis-master 10000
+    requirepass ${SENTINEL_PASSWORD}
+    logfile /var/log/redis/sentinel.log
+    loglevel notice
+    bind 0.0.0.0
+    protected-mode no
+    sentinel announce-hostnames yes
+    sentinel resolve-hostnames yes

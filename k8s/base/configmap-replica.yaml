@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-database-replica-config
+  labels:
+    app.kubernetes.io/name: redis-database
+    app.kubernetes.io/component: redis-replica
+data:
+  redis.conf: |
+    port 6379
+    bind 0.0.0.0
+    protected-mode no
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    replicaof redis-database-master-service 6379
+    replica-read-only yes
+    replica-serve-stale-data yes
+    replica-priority 100
+    maxmemory 1gb
+    maxmemory-policy allkeys-lru
+    save ""
+    appendonly no
+    logfile /var/log/redis/redis-replica.log
+    loglevel notice
+    tcp-keepalive 300
+    timeout 300
+    tcp-backlog 511
+    lua-time-limit 5000
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128

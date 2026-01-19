@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-database.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  REDIS_HOST: {{ include "redis-database.fullname" . }}-master-service
+  REDIS_PORT: "6379"
+  # Service database assignments
+  AUTH_DB: {{ .Values.services.auth.database | quote }}
+  SCRAPER_CACHE_DB: {{ .Values.services.recipeScraper.cache.database | quote }}
+  SCRAPER_QUEUE_DB: {{ .Values.services.recipeScraper.queue.database | quote }}
+  SCRAPER_RATELIMIT_DB: {{ .Values.services.recipeScraper.rateLimit.database | quote }}
+  USER_DB: {{ .Values.services.userManagement.database | quote }}
+  NOTIFICATION_DB: {{ .Values.services.notification.database | quote }}
+  MEALPLAN_DB: {{ .Values.services.mealPlan.database | quote }}
+  # Service TTL configurations
+  AUTH_SESSION_TTL: {{ .Values.services.auth.ttl.session | quote }}
+  AUTH_ACCESS_TOKEN_TTL: {{ .Values.services.auth.ttl.accessToken | quote }}
+  AUTH_REFRESH_TOKEN_TTL: {{ .Values.services.auth.ttl.refreshToken | quote }}
+  SCRAPER_CACHE_TTL: {{ .Values.services.recipeScraper.cache.ttl.default | quote }}
+  USER_CACHE_TTL: {{ .Values.services.userManagement.ttl.default | quote }}
+  # Service database map (JSON for application consumption)
+  SERVICE_DB_MAP: |
+    {
+      "auth": {{ .Values.services.auth.database }},
+      "scraper-cache": {{ .Values.services.recipeScraper.cache.database }},
+      "scraper-queue": {{ .Values.services.recipeScraper.queue.database }},
+      "scraper-ratelimit": {{ .Values.services.recipeScraper.rateLimit.database }},
+      "user-management": {{ .Values.services.userManagement.database }},
+      "notification": {{ .Values.services.notification.database }},
+      "meal-plan": {{ .Values.services.mealPlan.database }}
+    }
+  LOG_LEVEL: "INFO"
+---
+{{- if .Values.ha.sentinel.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-database.fullname" . }}-sentinel-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.sentinelLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  sentinel.conf: |
+    port 26379
+    sentinel monitor {{ include "redis-database.sentinelMasterName" . }} {{ include "redis-database.fullname" . }}-master-service 6379 2
+    sentinel auth-pass {{ include "redis-database.sentinelMasterName" . }} ${REDIS_PASSWORD}
+    sentinel down-after-milliseconds {{ include "redis-database.sentinelMasterName" . }} {{ .Values.ha.sentinel.downAfterMilliseconds }}
+    sentinel parallel-syncs {{ include "redis-database.sentinelMasterName" . }} {{ .Values.ha.sentinel.parallelSyncs }}
+    sentinel failover-timeout {{ include "redis-database.sentinelMasterName" . }} {{ .Values.ha.sentinel.failoverTimeout }}
+    requirepass ${SENTINEL_PASSWORD}
+    logfile /var/log/redis/sentinel.log
+    loglevel notice
+    bind 0.0.0.0
+    protected-mode no
+    sentinel announce-hostnames yes
+    sentinel resolve-hostnames yes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-database.fullname" . }}-master-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.masterLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  redis.conf: |
+    port 6379
+    bind 0.0.0.0
+    protected-mode no
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    {{- if .Values.redis.acl.enabled }}
+    aclfile /data/users.acl
+    {{- end }}
+    maxmemory {{ .Values.redis.config.maxmemory }}
+    maxmemory-policy {{ .Values.redis.config.maxmemoryPolicy }}
+    save {{ .Values.redis.config.save }}
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    appendonly {{ if .Values.redis.config.appendonly }}yes{{ else }}no{{ end }}
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    logfile /var/log/redis/redis.log
+    loglevel notice
+    tcp-keepalive {{ .Values.redis.config.tcpKeepalive }}
+    timeout {{ .Values.redis.config.timeout }}
+    tcp-backlog 511
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    list-max-ziplist-size -2
+    list-compress-depth 0
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    lua-time-limit 5000
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis-database.fullname" . }}-replica-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.replicaLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  redis.conf: |
+    port 6379
+    bind 0.0.0.0
+    protected-mode no
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    replicaof {{ include "redis-database.fullname" . }}-master-service 6379
+    replica-read-only yes
+    replica-serve-stale-data yes
+    replica-priority 100
+    maxmemory {{ .Values.redis.config.maxmemory }}
+    maxmemory-policy {{ .Values.redis.config.maxmemoryPolicy }}
+    save ""
+    appendonly no
+    logfile /var/log/redis/redis-replica.log
+    loglevel notice
+    tcp-keepalive {{ .Values.redis.config.tcpKeepalive }}
+    timeout {{ .Values.redis.config.timeout }}
+    tcp-backlog 511
+    lua-time-limit 5000
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+{{- end }}

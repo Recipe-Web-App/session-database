@@ -1,0 +1,31 @@
+---
+apiVersion: v2
+name: redis-database
+description: >-
+  A multi-service Redis infrastructure with per-service database isolation,
+  ACL security, high availability, and comprehensive monitoring
+type: application
+version: 2.0.0
+appVersion: "8.0"
+
+keywords:
+  - redis
+  - database
+  - microservices
+  - ha
+  - multi-tenant
+  - acl
+
+home: https://github.com/Recipe-Web-App/redis-database
+sources:
+  - https://github.com/Recipe-Web-App/redis-database
+
+maintainers:
+  - name: Recipe Web App Team
+    email: team@recipe-web-app.local
+
+annotations:
+  category: Database
+  licenses: GPL-3.0
+
+dependencies: []

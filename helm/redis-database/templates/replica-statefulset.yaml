@@ -1,0 +1,127 @@
+{{- /*
+Redis Replica StatefulSet - Only deployed when Sentinel HA is enabled
+*/ -}}
+{{- if .Values.ha.sentinel.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis-database.fullname" . }}-replica
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "redis-database.replicaLabels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "redis-database.fullname" . }}-headless
+  replicas: {{ .Values.ha.replica.replicas }}
+  selector:
+    matchLabels:
+      {{- include "redis-database.replicaSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "redis-database.replicaLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- if .Values.security.serviceAccount.create }}
+      serviceAccountName: {{ include "redis-database.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.security.serviceAccount.automountServiceAccountToken }}
+      {{- end }}
+      {{- include "redis-database.securityContext" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: {{ include "redis-database.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "redis-database.containerSecurityContext" . | nindent 10 }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "redis-database.fullname" . }}-secret
+                  key: redis-password
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Substitute environment variables in config
+              envsubst < /etc/redis/redis.conf > /tmp/redis.conf
+              redis-server /tmp/redis.conf
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis/redis.conf
+              subPath: redis.conf
+            - name: logs
+              mountPath: /var/log/redis
+          resources:
+            {{- toYaml .Values.ha.replica.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - --no-auth-warning
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "redis-database.fullname" . }}-replica-config
+        - name: logs
+          emptyDir: {}
+        {{- if not .Values.ha.replica.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.ha.replica.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "redis-database.replicaLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.ha.replica.persistence.storageClass }}
+        storageClassName: {{ .Values.ha.replica.persistence.storageClass }}
+        {{- else if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.ha.replica.persistence.size | default "5Gi" }}
+  {{- end }}
+{{- end }}

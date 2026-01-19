@@ -38,7 +38,7 @@ Create an `.env` file with the following variables:
 
 ```bash
 # Redis Configuration
-REDIS_HOST=session-database-service.session-database.svc.cluster.local
+REDIS_HOST=redis-database-service.redis-database.svc.cluster.local
 REDIS_PORT=6379
 REDIS_PASSWORD=your-secure-redis-password-here
 REDIS_DB=0
@@ -77,8 +77,8 @@ CACHE_CLEANUP_BATCH_SIZE=200
 CACHE_MAX_ENTRIES_PER_SERVICE=10000
 
 # Kubernetes Configuration
-NAMESPACE=session-database
-POD_LABEL=app=session-database
+NAMESPACE=redis-database
+POD_LABEL=app=redis-database
 
 # NodePort Configuration (for external access via minikube)
 REDIS_NODEPORT=30379
@@ -104,8 +104,8 @@ cp .env.example .env
 
 ```bash
 # Install with default values
-helm install session-database ./helm/session-database \
-  --namespace session-database \
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database \
   --create-namespace \
   --set redis.auth.password=your-redis-password \
   --set redis.auth.sentinel.password=your-sentinel-password
@@ -115,120 +115,37 @@ helm install session-database ./helm/session-database \
 
 ```bash
 # Install with production values
-helm install session-database ./helm/session-database \
-  --namespace session-database \
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database \
   --create-namespace \
-  --values ./helm/session-database/values-production.yaml \
+  --values ./helm/redis-database/values-production.yaml \
   --set redis.auth.password=your-redis-password \
   --set redis.auth.sentinel.password=your-sentinel-password
 ```
 
-### Option 2: GitOps with ArgoCD (Recommended for Production)
+### Option 2: Script-based Deployment (Development)
 
-1. **Install ArgoCD Application**:
-
-```bash
-kubectl apply -f k8s/argocd/application.yaml
-```
-
-1. **For Multi-Environment Setup**:
+For development environments using containerManagement scripts:
 
 ```bash
-kubectl apply -f k8s/argocd/applicationset.yaml
-```
-
-1. **Access ArgoCD UI**:
-
-```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-
-### Option 3: Script-based Deployment (Development/Legacy)
-
-For development environments and legacy compatibility using containerManagement scripts:
-
-#### Core Redis Deployment
-
-```bash
-# Deploy Redis HA cluster (Master, Replicas, Sentinel)
+# Deploy Redis via Helm (handles minikube setup, Docker build, Helm install)
 ./scripts/containerManagement/deploy-container.sh
 
 # Check Redis cluster status
 ./scripts/containerManagement/get-container-status.sh
-```
-
-#### Supporting Services Deployment
-
-```bash
-# Deploy monitoring, alerting, and security components
-./scripts/containerManagement/deploy-monitoring.sh
-
-# Check monitoring services status
-kubectl get pods,svc -n session-database -l component=monitoring
-```
-
-#### Complete Script-based Workflow
-
-```bash
-# Full deployment
-./scripts/containerManagement/deploy-container.sh
-./scripts/containerManagement/deploy-monitoring.sh
-
-# Verify deployment
-./scripts/containerManagement/get-container-status.sh
-kubectl get pods,svc -n session-database -l component=monitoring
 
 # Maintenance operations
 ./scripts/containerManagement/stop-container.sh      # Stop for maintenance
 ./scripts/containerManagement/start-container.sh     # Resume operations
 
-# Clean removal (monitoring first, then core)
-./scripts/containerManagement/cleanup-monitoring.sh
+# Cleanup
 ./scripts/containerManagement/cleanup-container.sh
 ```
 
-**Note**: These scripts follow consistent patterns across the distributed system
-and are designed for eventual migration to a SystemManagement project.
+**Note**: These scripts follow consistent patterns across the distributed system.
 See [CONTAINERMAGAGEMENT.md](CONTAINERMAGAGEMENT.md) for detailed documentation.
 
-### Option 4: Manual Kubernetes Manifests
-
-For advanced customization or when other deployment methods are not available:
-
-```bash
-# Apply all manifests in order by application
-
-# 1. Shared resources first
-kubectl apply -f k8s/shared/podsecurity.yaml
-kubectl apply -f k8s/templates/secret-template.yaml      # After substituting
-                                                              # environment variables
-kubectl apply -f k8s/templates/configmap-template.yaml  # After substituting
-                                                                 # environment variables
-kubectl apply -f k8s/shared/networkpolicy.yaml
-
-# 2. Redis components (choose standalone OR ha deployment)
-
-# Option A: Standalone Redis deployment
-kubectl apply -f k8s/redis/standalone/
-
-# Option B: High Availability Redis deployment
-kubectl apply -f k8s/redis/ha/master/
-kubectl apply -f k8s/redis/ha/replica/
-kubectl apply -f k8s/redis/ha/sentinel/
-kubectl apply -f k8s/redis/shared/          # Session cleanup jobs
-kubectl apply -f k8s/redis/autoscaling/     # HPA
-
-# 3. Monitoring stack
-kubectl apply -f k8s/prometheus/
-kubectl apply -f k8s/grafana/
-kubectl apply -f k8s/alertmanager/
-
-# 4. Additional shared resources
-kubectl apply -f k8s/shared/ingress.yaml
-kubectl apply -f k8s/shared/tls-certificates.yaml
-```
-
-### Option 5: Local Development with NodePort
+### Option 3: Local Development with NodePort
 
 For local Kubernetes clusters (minikube, k3s, kind, microk8s), use NodePort
 services to enable external Redis access:
@@ -242,7 +159,7 @@ The deployment script automatically configures external access via NodePort:
 ./scripts/containerManagement/deploy-container.sh
 
 # Access Redis via hostname (configured in /etc/hosts)
-redis-cli -h session-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
+redis-cli -h redis-database.local -p $REDIS_NODEPORT -a $REDIS_PASSWORD
 
 # Or via minikube IP directly
 redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a $REDIS_PASSWORD
@@ -252,13 +169,13 @@ redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a $REDIS_PASSWORD
 
 ```bash
 # Deploy with local values (NodePort enabled)
-helm install session-database ./helm/session-database \
-  --namespace session-database --create-namespace \
-  --values ./helm/session-database/values-local.yaml \
+helm install redis-database ./helm/redis-database \
+  --namespace redis-database --create-namespace \
+  --values ./helm/redis-database/values-local.yaml \
   --set redis.auth.password=your-redis-password
 
 # Check NodePort assignment
-kubectl get svc -n session-database
+kubectl get svc -n redis-database
 
 # Access Redis externally
 redis-cli -h $(minikube ip) -p $REDIS_NODEPORT -a your-redis-password
@@ -329,30 +246,15 @@ The system automatically configures:
 
 ## Operations
 
-### Monitoring Access
-
-```bash
-# Port forward to access monitoring tools
-kubectl port-forward svc/prometheus-service -n session-database 9090:9090
-kubectl port-forward svc/grafana-service -n session-database 3000:3000
-kubectl port-forward svc/alertmanager-service -n session-database 9093:9093
-```
-
-Default credentials:
-
-- **Grafana**: admin/admin (change immediately)
-- **Prometheus**: No authentication (use ingress with auth in production)
-
 ### Health Checks
 
 ```bash
 # Check overall system health
-./scripts/jobHelpers/session-health-check.sh
+./scripts/dbManagement/service-monitor.sh
 
 # Check individual components
-kubectl get pods -n session-database
-kubectl get services -n session-database
-kubectl get cronjobs -n session-database
+kubectl get pods -n redis-database
+kubectl get services -n redis-database
 ```
 
 ### Scaling
@@ -361,10 +263,10 @@ kubectl get cronjobs -n session-database
 
 ```bash
 # Scale Redis replicas
-kubectl scale deployment redis-replica -n session-database --replicas=5
+kubectl scale deployment redis-replica -n redis-database --replicas=5
 
 # Scale Sentinel instances
-kubectl scale deployment redis-sentinel -n session-database --replicas=5
+kubectl scale deployment redis-sentinel -n redis-database --replicas=5
 ```
 
 #### Automatic Scaling
@@ -380,11 +282,11 @@ The system includes HorizontalPodAutoscaler for automatic scaling based on:
 
 ```bash
 # Create Redis backup
-kubectl exec -n session-database redis-master-xxx -- \
+kubectl exec -n redis-database redis-master-xxx -- \
   redis-cli -a $REDIS_PASSWORD BGSAVE
 
 # Export backup
-kubectl cp session-database/redis-master-xxx:/data/dump.rdb ./backup-$(date +%Y%m%d).rdb
+kubectl cp redis-database/redis-master-xxx:/data/dump.rdb ./backup-$(date +%Y%m%d).rdb
 ```
 
 #### Automated Backup (Recommended)
@@ -410,8 +312,8 @@ Redis Sentinel automatically handles master failover:
 
 ```bash
 # Restore from backup
-kubectl cp ./backup-20240101.rdb session-database/redis-master-xxx:/data/dump.rdb
-kubectl delete pod redis-master-xxx -n session-database  # Triggers restart
+kubectl cp ./backup-20240101.rdb redis-database/redis-master-xxx:/data/dump.rdb
+kubectl delete pod redis-master-xxx -n redis-database  # Triggers restart
 ```
 
 ## Security Best Practices
@@ -435,17 +337,17 @@ For production, replace direct password configuration with external secret manag
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: session-database-secrets
+  name: redis-database-secrets
 spec:
   secretStoreRef:
     name: vault-backend
     kind: SecretStore
   target:
-    name: session-database-secret
+    name: redis-database-secret
   data:
     - secretKey: redis-password
       remoteRef:
-        key: session-database
+        key: redis-database
         property: redis-password
 ```
 
@@ -477,18 +379,18 @@ spec:
 
 ```bash
 # Check Redis master status
-kubectl exec -n session-database redis-master-xxx -- \
+kubectl exec -n redis-database redis-master-xxx -- \
   redis-cli -a $REDIS_PASSWORD info replication
 
 # Check Sentinel status
-kubectl exec -n session-database redis-sentinel-xxx -- \
+kubectl exec -n redis-database redis-sentinel-xxx -- \
   redis-cli -p 26379 -a $SENTINEL_PASSWORD sentinel masters
 
 # View cleanup job logs
-kubectl logs -n session-database -l component=maintenance
+kubectl logs -n redis-database -l component=maintenance
 
 # Check network connectivity
-kubectl exec -n session-database redis-master-xxx -- nslookup redis-replica-service
+kubectl exec -n redis-database redis-master-xxx -- nslookup redis-replica-service
 ```
 
 ## Performance Tuning
@@ -553,9 +455,9 @@ Use high-performance storage classes:
 
 ```bash
 # Update via Helm
-helm upgrade session-database ./helm/session-database \
-  --namespace session-database \
-  --values ./helm/session-database/values-production.yaml
+helm upgrade redis-database ./helm/redis-database \
+  --namespace redis-database \
+  --values ./helm/redis-database/values-production.yaml
 
 # Update via ArgoCD (GitOps)
 # Push changes to git repository - ArgoCD will automatically sync
@@ -565,7 +467,7 @@ helm upgrade session-database ./helm/session-database \
 
 ```bash
 # Update base images
-docker build --no-cache -t session-database:new-version .
+docker build --no-cache -t redis-database:new-version .
 
 # Run security scans
 pre-commit run --all-files

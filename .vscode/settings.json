@@ -1,0 +1,192 @@
+{
+  // ==========================================================================
+  // EDITOR SETTINGS
+  // ==========================================================================
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [88, 100],
+  "editor.formatOnSave": true,
+  "editor.trimAutoWhitespace": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  // ==========================================================================
+  // BASH / SHELL SETTINGS
+  // ==========================================================================
+  "[shellscript]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "shellformat.useEditorConfig": false,
+  "shellformat.flag": "-i 2 -ci -sr -bn",
+  "shellcheck.enable": true,
+  "shellcheck.run": "onSave",
+  "shellcheck.executablePath": "shellcheck",
+  "bashIde.shellcheckPath": "shellcheck",
+  "bashIde.enableSourceErrorDiagnostics": false,
+
+  // ==========================================================================
+  // YAML SETTINGS (matches .yamllint)
+  // ==========================================================================
+  "[yaml]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.rulers": [88]
+  },
+  "yaml.format.enable": true,
+  "yaml.format.singleQuote": false,
+  "yaml.format.bracketSpacing": true,
+  "yaml.format.proseWrap": "preserve",
+  "yaml.validate": true,
+  "yaml.hover": true,
+  "yaml.completion": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/kustomization.json": "kustomization.yaml",
+    "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json": "docker-compose*.yml"
+  },
+  "yaml.customTags": ["!reference sequence"],
+
+  // ==========================================================================
+  // HELM SETTINGS
+  // ==========================================================================
+  "helm-intellisense.chartRootPath": "./helm/redis-database",
+
+  // ==========================================================================
+  // LUA SETTINGS (for Redis scripts)
+  // ==========================================================================
+  "[lua]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "sumneko.lua"
+  },
+  "Lua.diagnostics.globals": ["redis", "cjson", "KEYS", "ARGV"],
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.workspace.checkThirdParty": false,
+
+  // ==========================================================================
+  // PYTHON SETTINGS
+  // ==========================================================================
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.rulers": [88]
+  },
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "black-formatter.args": ["--line-length", "88"],
+  "isort.args": ["--profile", "black"],
+  "flake8.args": ["--max-line-length", "88"],
+  "mypy-type-checker.args": ["--ignore-missing-imports"],
+
+  // ==========================================================================
+  // MARKDOWN SETTINGS (matches .markdownlint.json)
+  // ==========================================================================
+  "[markdown]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.rulers": [100],
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 100
+  },
+  "markdownlint.config": {
+    "default": true,
+    "MD013": {
+      "line_length": 100
+    }
+  },
+
+  // ==========================================================================
+  // DOCKER SETTINGS (matches .hadolint.yaml)
+  // ==========================================================================
+  "[dockerfile]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+  },
+  "hadolint.hadolintPath": "hadolint",
+
+  // ==========================================================================
+  // JSON SETTINGS
+  // ==========================================================================
+  "[json]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // ==========================================================================
+  // KUBERNETES SETTINGS
+  // ==========================================================================
+  "vs-kubernetes": {
+    "vs-kubernetes.namespace": "redis-database",
+    "vs-kubernetes.kubectl-path": "kubectl",
+    "vs-kubernetes.helm-path": "helm"
+  },
+
+  // ==========================================================================
+  // GIT SETTINGS
+  // ==========================================================================
+  "conventionalCommits.scopes": [
+    "redis",
+    "helm",
+    "k8s",
+    "scripts",
+    "auth",
+    "cache",
+    "monitoring",
+    "security",
+    "docs",
+    "ci"
+  ],
+  "conventionalCommits.showNewVersionNotes": false,
+
+  // ==========================================================================
+  // FILE ASSOCIATIONS
+  // ==========================================================================
+  "files.associations": {
+    "*.lua": "lua",
+    "*.sh": "shellscript",
+    ".env": "dotenv",
+    ".env.*": "dotenv",
+    ".shellcheckrc": "properties",
+    "Dockerfile*": "dockerfile",
+    "*.yaml.tpl": "helm",
+    "*.yml.tpl": "helm",
+    "**/templates/*.yaml": "helm",
+    "**/templates/*.yml": "helm"
+  },
+
+  // ==========================================================================
+  // FILE EXCLUSIONS
+  // ==========================================================================
+  "files.exclude": {
+    "**/.git": true,
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/.mypy_cache": true,
+    "**/.pre-commit-trivy-cache": true
+  },
+
+  // ==========================================================================
+  // SEARCH EXCLUSIONS
+  // ==========================================================================
+  "search.exclude": {
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/logs": true,
+    "**/tmp": true,
+    "**/backups": true
+  }
+}

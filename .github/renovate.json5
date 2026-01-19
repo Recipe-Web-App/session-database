@@ -1,0 +1,205 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // Base configuration
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":rebaseStalePrs"
+  ],
+
+  // Schedule: Weekly on Mondays at 09:00 US/Eastern (matches Dependabot)
+  "timezone": "US/Eastern",
+  "schedule": ["after 9am on monday"],
+
+  // PR limits (matches Dependabot's 100)
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 100,
+
+  // Assignee (matches Dependabot)
+  "assignees": ["jsamuelsen11"],
+
+  // Default labels
+  "labels": ["dependencies"],
+
+  // Rebase strategy (matches Dependabot's auto)
+  "rebaseWhen": "auto",
+
+  // Auto-merge settings (replaces dependabot-auto-merge.yml)
+  "automerge": false,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": true,
+
+  // Dependency Dashboard
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard",
+  "dependencyDashboardLabels": ["dependencies", "dashboard"],
+
+  // Vulnerability alerts
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "automerge": true
+  },
+
+  "packageRules": [
+    // =============================================
+    // PRE-COMMIT HOOKS (NEW - Renovate-only feature)
+    // =============================================
+    {
+      "description": "Pre-commit hooks - patch updates auto-merge",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "pre-commit patch updates",
+      "labels": ["dependencies", "pre-commit"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "pre-commit",
+      "automerge": true
+    },
+    {
+      "description": "Pre-commit hooks - minor updates grouped",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "pre-commit minor updates",
+      "labels": ["dependencies", "pre-commit"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "pre-commit",
+      "automerge": false
+    },
+    {
+      "description": "Pre-commit hooks - ignore major updates (matches Dependabot ignore)",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+
+    // =============================================
+    // DOCKER (matches Dependabot docker ecosystem)
+    // =============================================
+    {
+      "description": "Docker images - patch updates auto-merge",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["patch"],
+      "labels": ["dependencies", "docker"],
+      "semanticCommitType": "docker",
+      "automerge": true
+    },
+    {
+      "description": "Docker images - minor updates",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor"],
+      "labels": ["dependencies", "docker"],
+      "semanticCommitType": "docker",
+      "automerge": false
+    },
+    {
+      "description": "Docker images - major updates require review",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "docker"],
+      "semanticCommitType": "docker",
+      "automerge": false,
+      "prBodyNotes": [":warning: **Major version update** - This PR requires manual review before merging."]
+    },
+
+    // =============================================
+    // GITHUB ACTIONS (matches Dependabot github-actions)
+    // =============================================
+    {
+      "description": "GitHub Actions - pin to SHA for security",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "description": "GitHub Actions - group all, auto-merge patch/minor",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "GitHub Actions",
+      "labels": ["dependencies", "github-actions"],
+      "semanticCommitType": "ci",
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions - major updates require review",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "GitHub Actions (major)",
+      "labels": ["dependencies", "github-actions"],
+      "semanticCommitType": "ci",
+      "automerge": false,
+      "prBodyNotes": [":warning: **Major version update** - This PR requires manual review before merging."]
+    },
+
+    // =============================================
+    // PYTHON/PIP (matches Dependabot pip ecosystem)
+    // =============================================
+    {
+      "description": "Python patch updates - grouped, auto-merge",
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry", "pep621"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "Python patch updates",
+      "labels": ["dependencies", "python"],
+      "semanticCommitType": "deps",
+      "automerge": true
+    },
+    {
+      "description": "Python minor updates - grouped",
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry", "pep621"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "Python minor updates",
+      "labels": ["dependencies", "python"],
+      "semanticCommitType": "deps",
+      "automerge": false
+    },
+    {
+      "description": "Python major updates require review",
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry", "pep621"],
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "python"],
+      "semanticCommitType": "deps",
+      "automerge": false,
+      "prBodyNotes": [":warning: **Major version update** - This PR requires manual review before merging."]
+    },
+    {
+      "description": "Python dev dependencies use deps-dev prefix",
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry", "pep621"],
+      "matchDepTypes": ["devDependencies", "dev"],
+      "semanticCommitType": "deps-dev"
+    },
+
+    // =============================================
+    // HELM (NEW - Renovate-only feature)
+    // =============================================
+    {
+      "description": "Helm chart dependencies",
+      "matchManagers": ["helmv3", "helm-values"],
+      "labels": ["dependencies", "helm"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "helm",
+      "automerge": false
+    },
+
+    // =============================================
+    // SECURITY UPDATES (high priority)
+    // =============================================
+    {
+      "description": "Security updates - immediate, auto-merge",
+      "matchCategories": ["security"],
+      "labels": ["dependencies", "security"],
+      "semanticCommitType": "fix",
+      "semanticCommitScope": "security",
+      "prPriority": 10,
+      "automerge": true,
+      "schedule": ["at any time"]
+    }
+  ],
+
+  // Lock file maintenance (weekly, before regular updates)
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on monday"],
+    "automerge": true
+  }
+}

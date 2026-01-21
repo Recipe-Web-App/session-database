@@ -69,10 +69,15 @@
       "automerge": false
     },
     {
-      "description": "Pre-commit hooks - ignore major updates (matches Dependabot ignore)",
+      "description": "Pre-commit hooks - major updates require review",
       "matchManagers": ["pre-commit"],
       "matchUpdateTypes": ["major"],
-      "enabled": false
+      "groupName": "pre-commit major updates",
+      "labels": ["dependencies", "pre-commit"],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "pre-commit",
+      "automerge": false,
+      "prBodyNotes": [":warning: **Major version update** - This PR requires manual review before merging."]
     },
 
     // =============================================

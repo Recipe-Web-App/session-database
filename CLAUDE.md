@@ -68,15 +68,19 @@ NodePort defaults (configurable in `.env`): `REDIS_NODEPORT=30379`,
 
 ### Service Databases
 
-| DB  | Service           | Description                  |
-| --- | ----------------- | ---------------------------- |
-| 0   | auth              | OAuth2 authentication        |
-| 1   | scraper-cache     | Recipe scraper cache         |
-| 2   | scraper-queue     | Recipe scraper queue         |
-| 3   | scraper-ratelimit | Recipe scraper rate limiting |
-| 4   | user              | User management              |
-| 5   | notification      | Notification service         |
-| 6   | mealplan          | Meal plan management         |
+Each service has its own Redis database and ACL user with restricted key access.
+
+| DB  | Service           | ACL User             | Description                  |
+| --- | ----------------- | -------------------- | ---------------------------- |
+| 0   | auth              | auth-service         | OAuth2 authentication        |
+| 1   | scraper-cache     | scraper-service      | Recipe scraper cache         |
+| 2   | scraper-queue     | scraper-service      | Recipe scraper queue         |
+| 3   | scraper-ratelimit | scraper-service      | Recipe scraper rate limiting |
+| 4   | user              | user-service         | User management              |
+| 5   | notification      | notification-service | Notification service         |
+| 6   | mealplan          | mealplan-service     | Meal plan management         |
+
+DB 7-15 are reserved for future services.
 
 ### Management Scripts
 
@@ -133,9 +137,9 @@ kubectl exec -it deployment/redis-sentinel -n redis-database -- \
 - **Security**: Network policies, TLS, ACL authentication, Pod Security Standards
 - **Automated Ops**: TTL-based key expiration, HPA
 
-### Data Model
+### Key Patterns
 
-**Auth Service Database (DB 0)**:
+**Auth Service (DB 0)**:
 
 - `auth:client:{client_id}` - OAuth2 client registrations (hash)
 - `auth:code:{code}` - Authorization codes (hash, 10 min TTL)
@@ -144,12 +148,12 @@ kubectl exec -it deployment/redis-sentinel -n redis-database -- \
 - `auth:session:{session_id}` - User sessions (hash, 1 hour TTL)
 - `auth:blacklist:{token}` - Revoked tokens (string with TTL)
 - `auth:rate_limit:{key}` - Rate limiting counters (int with TTL)
-- `auth_stats`, `auth_config` - Metrics and configuration
 
-**Service Cache Database (DB 1)**:
+**Recipe Scraper (DB 1-3)**:
 
-- `cache:resource:{name}` - Cached resources (hash, 24h default TTL)
-- `cache_stats`, `cache_config` - Cache metrics and settings
+- DB 1: `cache:*` - Scraped recipe cache (24h TTL)
+- DB 2: `queue:*` - Job queue entries (1h TTL)
+- DB 3: `ratelimit:*` - Rate limit counters (60s window)
 
 ## Commit Convention
 
@@ -191,3 +195,9 @@ kubectl logs -n redis-database -l component=maintenance -f
 3. **AOF directory failed**: Redis 8.0+ needs writable data directory
 4. **Health probe failures**: Verify REDIS_PASSWORD env var substitution
 5. **Init Job timeout**: Ensure Redis is ready before Lua scripts run
+
+## Additional Documentation
+
+- `docs/DEPLOYMENT.md` - Comprehensive deployment guide with HA, security, and
+  operations
+- `docs/CONTAINERMAGAGEMENT.md` - Script documentation for containerManagement
